@@ -41,6 +41,7 @@
 	<properties>
 		<java.version>11</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<plugin.outputdir>${project.build.directory}/${project.artifactId}</plugin.outputdir>
 	</properties>
 
 	<build>
@@ -55,20 +56,37 @@
 					<compilerArgs>
 						<compilerArg>-parameters</compilerArg>
 					</compilerArgs>
+	                <annotationProcessorPaths>
+						<annotationProcessorPath>
+							<groupId>org.immutables</groupId>
+							<artifactId>value</artifactId>
+							<version>2.8.3</version>
+						</annotationProcessorPath>
+					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-shade-plugin</artifactId>
-				<version>3.2.1</version>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>3.2.0</version>
+				<configuration>
+					<outputDirectory>${plugin.outputdir}</outputDirectory>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<version>3.1.2</version>
 				<executions>
 					<execution>
+						<id>copy-dependencies</id>
 						<phase>package</phase>
 						<goals>
-							<goal>shade</goal>
+							<goal>copy-dependencies</goal>
 						</goals>
 						<configuration>
-							<outputFile>${project.build.directory}/ultimategdbot-core-plugin.jar</outputFile>
+							<outputDirectory>${plugin.outputdir}</outputDirectory>
+							<excludeScope>provided</excludeScope>
 						</configuration>
 					</execution>
 				</executions>
@@ -89,7 +107,7 @@
 		            <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
 		            <injectAllReactorProjects>true</injectAllReactorProjects>
 		            <generateGitPropertiesFile>true</generateGitPropertiesFile>
-		            <generateGitPropertiesFilename>${project.build.outputDirectory}/gitprops/core.git.properties</generateGitPropertiesFilename>
+		            <generateGitPropertiesFilename>${project.build.outputDirectory}/core.git.properties</generateGitPropertiesFilename>
 		        </configuration>
 		    </plugin>
 			<plugin>
@@ -100,6 +118,28 @@
 					<tagNameFormat>v@{project.version}</tagNameFormat>
 					<goals>deploy</goals>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>3.0.0</version>
+				<executions>
+					<execution>
+						<id>antrun-archive</id>
+						<phase>package</phase>
+						<goals>
+							<goal>run</goal>
+						</goals>
+						<configuration>
+							<target>
+								<zip basedir="${project.build.directory}"
+										destfile="${plugin.outputdir}.zip"
+										includes="${project.artifactId}/**" />
+								<delete dir="${plugin.outputdir}" />
+							</target>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

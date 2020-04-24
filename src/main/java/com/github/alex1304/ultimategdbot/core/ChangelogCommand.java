@@ -85,7 +85,7 @@ public class ChangelogCommand {
 				.then();
 	}
 	
-	private EmbedData parse(User author, List<String> lines) {
+	private static EmbedData parse(User author, List<String> lines) {
 		final var expectingFieldName = 1;
 		final var expectingFieldContent = 2;
 		var state = 0;

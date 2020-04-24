@@ -44,14 +44,14 @@ class RuntimeCommand {
 				.then();
 	}
 
-	private Mono<EmbedField> uptime() {
+	private static Mono<EmbedField> uptime() {
 		return Mono.just(new EmbedField("Uptime",
 				"The bot has been running for "
 						+ BotUtils.formatDuration(Duration.ofMillis(ManagementFactory.getRuntimeMXBean().getUptime()).withNanos(0))
 						+ " without interruption."));
 	}
 	
-	private Mono<EmbedField> memory(Context ctx) {
+	private static Mono<EmbedField> memory(Context ctx) {
 		return MemoryStats.getStats()
 				.map(memStats -> {
 					var total = memStats.totalMemory;
@@ -72,14 +72,14 @@ class RuntimeCommand {
 				});
 	}
 	
-	private Mono<EmbedField> shardInfo(Context ctx) {
+	private static Mono<EmbedField> shardInfo(Context ctx) {
 		var shardInfo = ctx.event().getShardInfo();
 		return Mono.just(new EmbedField("Gateway sharding info",
 				"This chat is served on shard number " + shardInfo.getIndex() + ".\n"
 				+ "The bot's gateway connection is currently split over " + shardInfo.getCount() + " shard(s)."));
 	}
 	
-	private Mono<EmbedField> cacheInfo(Context ctx) {
+	private static Mono<EmbedField> cacheInfo(Context ctx) {
 		var stateView = ctx.bot().gateway().getGatewayResources().getStateView();
 		return Mono.zip(
 				objArray -> Arrays.stream(objArray).map(x -> (Long) x).collect(Collectors.toList()),
