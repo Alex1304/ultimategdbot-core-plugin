@@ -4,7 +4,7 @@
 	<artifactId>ultimategdbot-core</artifactId>
 	<version>6.0.0-SNAPSHOT</version>
 
-	<name>ultimategdbot-core</name>
+	<name>ultimategdbot-core-plugin</name>
 	<url>http://maven.apache.org</url>
 
 	<description>Core plugin for UltimateGDBot</description>
@@ -25,9 +25,9 @@
 	</developers>
 
 	<scm>
-		<url>https://github.com/ultimategdbot/ultimategdbot-core/tree/master</url>
-		<connection>scm:git:git://github.com/ultimategdbot/ultimategdbot-core.git</connection>
-		<developerConnection>scm:git:ssh://git@github.com/ultimategdbot/ultimategdbot-core.git</developerConnection>
+		<url>https://github.com/ultimategdbot/ultimategdbot-core-plugin/tree/master</url>
+		<connection>scm:git:git://github.com/ultimategdbot/ultimategdbot-core-plugin.git</connection>
+		<developerConnection>scm:git:ssh://git@github.com/ultimategdbot/ultimategdbot-core-plugin.git</developerConnection>
 		<tag>HEAD</tag>
 	</scm>
 
@@ -107,7 +107,7 @@
 		            <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
 		            <injectAllReactorProjects>true</injectAllReactorProjects>
 		            <generateGitPropertiesFile>true</generateGitPropertiesFile>
-		            <generateGitPropertiesFilename>${project.build.outputDirectory}/core.git.properties</generateGitPropertiesFilename>
+		            <generateGitPropertiesFilename>${project.build.outputDirectory}/META-INF/git/core.git.properties</generateGitPropertiesFilename>
 		        </configuration>
 		    </plugin>
 			<plugin>
@@ -135,7 +135,6 @@
 								<zip basedir="${project.build.directory}"
 										destfile="${plugin.outputdir}.zip"
 										includes="${project.artifactId}/**" />
-								<delete dir="${plugin.outputdir}" />
 							</target>
 						</configuration>
 					</execution>

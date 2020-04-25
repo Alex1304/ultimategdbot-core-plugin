@@ -13,7 +13,6 @@ import com.github.alex1304.ultimategdbot.api.command.CommandProvider;
 import com.github.alex1304.ultimategdbot.api.command.PermissionChecker;
 import com.github.alex1304.ultimategdbot.api.command.PermissionLevel;
 import com.github.alex1304.ultimategdbot.api.command.annotated.AnnotatedCommandProvider;
-import com.github.alex1304.ultimategdbot.api.util.PropertyReader;
 import com.github.alex1304.ultimategdbot.core.database.BlacklistedIdDao;
 import com.github.alex1304.ultimategdbot.core.database.BotAdminDao;
 import com.github.alex1304.ultimategdbot.core.database.CoreConfigDao;
@@ -31,7 +30,7 @@ public class CorePluginBootstrap implements PluginBootstrap {
 	private static final String PLUGIN_NAME = "Core";
 
 	@Override
-	public Mono<Plugin> setup(Bot bot, PropertyReader pluginProperties) {
+	public Mono<Plugin> setup(Bot bot) {
 		bot.database().configureJdbi(jdbi -> {
 			jdbi.getConfig(JdbiImmutables.class).registerImmutable(CoreConfigData.class);
 		});
@@ -58,7 +57,7 @@ public class CorePluginBootstrap implements PluginBootstrap {
 		cmdProvider.addAnnotated(new PingCommand());
 		cmdProvider.addAnnotated(new SetupCommand());
 		cmdProvider.addAnnotated(new LogoutCommand());
-		cmdProvider.addAnnotated(new AboutCommand(PLUGIN_NAME, aboutText));
+		cmdProvider.addAnnotated(new AboutCommand(aboutText));
 		cmdProvider.addAnnotated(new BotAdminsCommand());
 		cmdProvider.addAnnotated(new BlacklistCommand());
 		cmdProvider.addAnnotated(new RuntimeCommand());
@@ -97,10 +96,5 @@ public class CorePluginBootstrap implements PluginBootstrap {
 	
 	private static Mono<Void> initMemoryStats() {
 		return Mono.fromRunnable(MemoryStats::start);
-	}
-
-	@Override
-	public Mono<PropertyReader> initPluginProperties() {
-		return Mono.empty();
 	}
 }
