@@ -1,21 +1,22 @@
 package com.github.alex1304.ultimategdbot.core.database;
 
-import static com.github.alex1304.ultimategdbot.api.guildconfig.ValueGetters.forOptionalGuildChannel;
-import static com.github.alex1304.ultimategdbot.api.guildconfig.ValueGetters.forOptionalValue;
+import static com.github.alex1304.ultimategdbot.api.database.guildconfig.ValueGetters.forOptionalGuildChannel;
+import static com.github.alex1304.ultimategdbot.api.database.guildconfig.ValueGetters.forOptionalValue;
 
 import java.util.Optional;
 
 import org.immutables.value.Value;
 
 import com.github.alex1304.ultimategdbot.api.Bot;
-import com.github.alex1304.ultimategdbot.api.guildconfig.GuildChannelConfigEntry;
-import com.github.alex1304.ultimategdbot.api.guildconfig.GuildConfigData;
-import com.github.alex1304.ultimategdbot.api.guildconfig.GuildConfigurator;
-import com.github.alex1304.ultimategdbot.api.guildconfig.StringConfigEntry;
-import com.github.alex1304.ultimategdbot.api.guildconfig.Validator;
+import com.github.alex1304.ultimategdbot.api.command.CommandService;
+import com.github.alex1304.ultimategdbot.api.database.guildconfig.GuildChannelConfigEntry;
+import com.github.alex1304.ultimategdbot.api.database.guildconfig.GuildConfigData;
+import com.github.alex1304.ultimategdbot.api.database.guildconfig.GuildConfigurator;
+import com.github.alex1304.ultimategdbot.api.database.guildconfig.StringConfigEntry;
+import com.github.alex1304.ultimategdbot.api.database.guildconfig.Validator;
 
+import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.channel.Channel;
-import discord4j.rest.util.Snowflake;
 
 @Value.Immutable
 public interface CoreConfigData extends GuildConfigData<CoreConfigData> {
@@ -42,7 +43,7 @@ public interface CoreConfigData extends GuildConfigData<CoreConfigData> {
 								.from(data)
 								.channelChangelogId(Optional.ofNullable(channel).map(Channel::getId))
 								.build()))
-				.onSave(data -> bot.commandKernel()
+				.onSave(data -> bot.service(CommandService.class)
 						.setPrefixForGuild(data.guildId().asLong(), data.prefix().orElse(null)))
 				.build();
 	}

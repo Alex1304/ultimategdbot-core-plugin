@@ -7,6 +7,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.github.alex1304.ultimategdbot.api.Translator;
 import com.github.alex1304.ultimategdbot.api.command.CommandFailedException;
 import com.github.alex1304.ultimategdbot.api.command.Context;
 import com.github.alex1304.ultimategdbot.api.command.PermissionLevel;
@@ -14,7 +15,8 @@ import com.github.alex1304.ultimategdbot.api.command.annotated.CommandAction;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDescriptor;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDoc;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandPermission;
-import com.github.alex1304.ultimategdbot.api.util.menu.InteractiveMenu;
+import com.github.alex1304.ultimategdbot.api.command.menu.InteractiveMenuService;
+import com.github.alex1304.ultimategdbot.api.database.DatabaseService;
 import com.github.alex1304.ultimategdbot.core.database.CoreConfigDao;
 
 import discord4j.core.object.entity.Attachment;
@@ -26,6 +28,7 @@ import discord4j.discordjson.json.ImmutableEmbedData;
 import discord4j.discordjson.json.ImmutableEmbedFieldData;
 import discord4j.discordjson.json.ImmutableMessageCreateRequest;
 import discord4j.discordjson.possible.Possible;
+import discord4j.rest.util.Color;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
@@ -33,7 +36,7 @@ import reactor.util.retry.Retry;
 
 @CommandDescriptor(
 		aliases = "changelog",
-		shortDescription = "Sends a changelog to all guilds that are configured to receive them."
+		shortDescription = "tr:cmddoc_core_changelog/short_description"
 )
 @CommandPermission(level = PermissionLevel.BOT_OWNER)
 public class ChangelogCommand {
@@ -41,43 +44,36 @@ public class ChangelogCommand {
 	private final HttpClient fileClient = HttpClient.create().headers(h -> h.add("Content-Type", "text/plain"));
 	
 	@CommandAction
-	@CommandDoc("This command expects one text file attached to the message. This textfile contains "
-			+ "information that should be included in the announcement, in the following format:\n"
-			+ "```\n"
-			+ "First line is the title of the announcement\n\n"
-			+ "Skip two lines, and write the title of the first section\n"
-			+ "On next line, the content of the first section\n\n"
-			+ "Skip two lines again and write the title of the 2nd section\n"
-			+ "Then on next line the content of the 2nd section, etc etc.\n"
-			+ "```\n")
+	@CommandDoc("tr:cmddoc_core_changelog/run")
 	public Mono<Void> run(Context ctx) {
 		if (ctx.event().getMessage().getAttachments().size() != 1) {
-			return Mono.error(new CommandFailedException("You must attach exactly one file."));
+			return Mono.error(new CommandFailedException(ctx.translate("cmdtext_core_changelog", "error_attachment")));
 		}
-		return getFileContent(ctx.event().getMessage().getAttachments().stream().findAny().orElseThrow())
+		return getFileContent(ctx, ctx.event().getMessage().getAttachments().stream().findAny().orElseThrow())
 				.map(String::lines)
 				.flatMapMany(Flux::fromStream)
 				.filter(l -> !l.startsWith("#"))
 				.collectList()
-				.map(lines -> parse(ctx.author(), lines))
-				.flatMap(embedData -> InteractiveMenu.create(m -> {
-							m.setContent("Here is the announcement that is going to be sent to all servers. Is this alright? React to confirm.");
+				.map(lines -> parse(ctx, ctx.author(), lines))
+				.flatMap(embedData -> ctx.bot().service(InteractiveMenuService.class).create(m -> {
+							m.setContent(ctx.translate("cmdtext_core_changelog", "confirm"));
 							m.setEmbed(embed -> {
 								embed.setTitle(embedData.title().get());
-								embed.setColor(embedData.color().get());
+								embed.setColor(Color.of(embedData.color().get()));
 								embedData.fields().get().forEach(fieldData ->
 										embed.addField(fieldData.name(), fieldData.value(), fieldData.inline().get()));
 							});
 						})
-						.addReactionItem("success", interaction -> ctx.reply("Sending announcement, please wait...")
-								.then(ctx.bot().database().withExtension(CoreConfigDao.class, CoreConfigDao::getAllChangelogChannels)
+						.addReactionItem("success", interaction -> ctx.reply(ctx.translate("cmdtext_core_changelog", "wait"))
+								.then(ctx.bot().service(DatabaseService.class)
+										.withExtension(CoreConfigDao.class, CoreConfigDao::getAllChangelogChannels)
 										.flatMapMany(Flux::fromIterable)
 										.map(ctx.bot().rest()::getChannelById)
 										.flatMap(channel -> channel.createMessage(ImmutableMessageCreateRequest.builder()
 												.embed(Possible.of(embedData))
 												.build())
 												.onErrorResume(e -> Mono.empty()))
-										.then(ctx.reply("Announcement sent to all guilds!")))
+										.then(ctx.reply(ctx.translate("cmdtext_core_changelog", "done"))))
 								.then())
 						.addReactionItem("cross", interaction -> Mono.fromRunnable(interaction::closeMenu))
 						.deleteMenuOnClose(true)
@@ -85,7 +81,7 @@ public class ChangelogCommand {
 				.then();
 	}
 	
-	private static EmbedData parse(User author, List<String> lines) {
+	private static EmbedData parse(Translator tr, User author, List<String> lines) {
 		final var expectingFieldName = 1;
 		final var expectingFieldContent = 2;
 		var state = 0;
@@ -120,7 +116,7 @@ public class ChangelogCommand {
 			}
 		}
 		if (title == null || fieldNames.size() != fieldContents.size()) {
-			throw new CommandFailedException("The input file has invalid or malformed content.");
+			throw new CommandFailedException(tr.translate("cmdtext_core_changelog", "error_malformed"));
 		}
 		var fTitle = title;
 		var fields = new ArrayList<EmbedFieldData>();
@@ -145,20 +141,19 @@ public class ChangelogCommand {
 				.build();
 	}
 	
-	private Mono<String> getFileContent(Attachment attachment) {
+	private Mono<String> getFileContent(Translator tr, Attachment attachment) {
 		return fileClient.get()
 				.uri(attachment.getUrl())
 				.responseSingle((response, content) -> {
 					if (response.status().code() / 100 != 2) {
-						return Mono.error(new CommandFailedException("Received " + response.status().code() + " "
-								+ response.status().reasonPhrase() + " from Discord CDN"));
+						return Mono.error(new CommandFailedException(
+								tr.translate("cmdtext_core_changelog", "error_cdn", response.status().toString())));
 					}
 					return content.asString();
 				})
 				.retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1))
 						.maxBackoff(Duration.ofMinutes(1))
 						.filter(IOException.class::isInstance))
-				.timeout(Duration.ofMinutes(2), Mono.error(new CommandFailedException("Cannot download file, Discord "
-						+ "CDN took too long to respond. Try again later.")));
+				.timeout(Duration.ofMinutes(2), Mono.error(new CommandFailedException(tr.translate("cmdtext_core_changelog", "error_timeout"))));
 	}
 }

@@ -7,32 +7,28 @@ import java.util.Arrays;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.github.alex1304.ultimategdbot.api.Translator;
 import com.github.alex1304.ultimategdbot.api.command.Context;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandAction;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDescriptor;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDoc;
-import com.github.alex1304.ultimategdbot.api.util.BotUtils;
-import com.github.alex1304.ultimategdbot.api.util.SystemUnit;
+import com.github.alex1304.ultimategdbot.api.util.DurationUtils;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @CommandDescriptor(
 		aliases = "runtime",
-		shortDescription = "Display runtime information on the bot."
+		shortDescription = "tr:cmddoc_core_runtime/short_description"
 )
 class RuntimeCommand {
 
-	private static final String[] STORE_NAMES = { "Channels", "Emojis", "Guilds", "Messages", "Members", "Presences",
-			"Roles", "Users", "Voice states" };
-
 	@CommandAction
-	@CommandDoc("This command allows users to view the resources used by the bot since its startup, "
-			+ "such as uptime, RAM usage, Discord events, Discord storage, shard info, etc.")
+	@CommandDoc("tr:cmddoc_core_runtime/run")
 	public Mono<Void> run(Context ctx) {
 		return ctx.channel().typeUntil(
 				Mono.zip(objArray -> Flux.fromArray(objArray).cast(EmbedField.class).collectList(),
-						uptime(),
+						uptime(ctx),
 						memory(ctx),
 						shardInfo(ctx),
 						cacheInfo(ctx))
@@ -44,11 +40,10 @@ class RuntimeCommand {
 				.then();
 	}
 
-	private static Mono<EmbedField> uptime() {
-		return Mono.just(new EmbedField("Uptime",
-				"The bot has been running for "
-						+ BotUtils.formatDuration(Duration.ofMillis(ManagementFactory.getRuntimeMXBean().getUptime()).withNanos(0))
-						+ " without interruption."));
+	private static Mono<EmbedField> uptime(Translator tr) {
+		return Mono.just(new EmbedField(tr.translate("cmdtext_core_runtime", "uptime"),
+				tr.translate("cmdtext_core_runtime", "uptime_value", DurationUtils.format(
+						Duration.ofMillis(ManagementFactory.getRuntimeMXBean().getUptime()).withNanos(0)))));
 	}
 	
 	private static Mono<EmbedField> memory(Context ctx) {
@@ -58,28 +53,39 @@ class RuntimeCommand {
 					var max = memStats.maxMemory;
 					var used = memStats.usedMemory;
 					var sb = new StringBuilder();
-					sb.append("Maximum system RAM available: ").append(SystemUnit.format(max)).append("\n");
-					sb.append("Current JVM size: " + SystemUnit.format(total))
+					sb.append(ctx.translate("cmdtext_core_runtime", "max_ram")).append(' ').append(SystemUnit.format(max)).append("\n");
+					sb.append(ctx.translate("cmdtext_core_runtime", "jvm_size")).append(' ').append(SystemUnit.format(total))
 							.append(" (").append(String.format("%.2f", total * 100 / (double) max)).append("%)\n");
-					sb.append("Last Garbage Collector run: ")
+					sb.append(ctx.translate("cmdtext_core_runtime", "gc_run")).append(' ')
 							.append(memStats.elapsedSinceLastGC()
-									.map(t -> BotUtils.formatDuration(t) + " ago")
+									.map(t -> ctx.translate("cmdtext_core_runtime", "ago", DurationUtils.format(t)))
 									.orElse("Never"))
 							.append("\n");
-					sb.append("Effective RAM usage after last GC run: ").append(SystemUnit.format(used))
+					sb.append(ctx.translate("cmdtext_core_runtime", "ram_after_gc")).append(' ').append(SystemUnit.format(used))
 							.append(" (").append(String.format("%.2f", used * 100 / (double) max)).append("%)\n");
-					return new EmbedField("Memory usage", sb.toString());
+					return new EmbedField(ctx.translate("cmdtext_core_runtime", "memory_usage"), sb.toString());
 				});
 	}
 	
 	private static Mono<EmbedField> shardInfo(Context ctx) {
 		var shardInfo = ctx.event().getShardInfo();
-		return Mono.just(new EmbedField("Gateway sharding info",
-				"This chat is served on shard number " + shardInfo.getIndex() + ".\n"
-				+ "The bot's gateway connection is currently split over " + shardInfo.getCount() + " shard(s)."));
+		return Mono.just(new EmbedField(ctx.translate("cmdtext_core_runtime", "gateway_sharding_info"),
+				ctx.translate("cmdtext_core_runtime", "shard_index", shardInfo.getIndex()) + '\n'
+				+ ctx.translate("cmdtext_core_runtime", "shard_count", shardInfo.getCount())));
 	}
 	
 	private static Mono<EmbedField> cacheInfo(Context ctx) {
+		final String[] storeNames = {
+				ctx.translate("cmdtext_core_runtime", "channels"),
+				ctx.translate("cmdtext_core_runtime", "emojis"),
+				ctx.translate("cmdtext_core_runtime", "guilds"),
+				ctx.translate("cmdtext_core_runtime", "messages"),
+				ctx.translate("cmdtext_core_runtime", "members"),
+				ctx.translate("cmdtext_core_runtime", "presences"),
+				ctx.translate("cmdtext_core_runtime", "roles"),
+				ctx.translate("cmdtext_core_runtime", "users"),
+				ctx.translate("cmdtext_core_runtime", "voice_states")
+		};
 		var stateView = ctx.bot().gateway().getGatewayResources().getStateView();
 		return Mono.zip(
 				objArray -> Arrays.stream(objArray).map(x -> (Long) x).collect(Collectors.toList()),
@@ -96,12 +102,12 @@ class RuntimeCommand {
 				var sb = new StringBuilder();
 				var i = 0;
 				for (var count : counts) {
-					sb.append(STORE_NAMES[i]).append(": ").append(count).append("\n");
+					sb.append(storeNames[i]).append(": ").append(count).append("\n");
 					i++;
 				}
 				return sb.toString();
 			})
-			.map(content -> new EmbedField("Cache usage", content));
+			.map(content -> new EmbedField(ctx.translate("cmdtext_core_runtime", "cache_usage"), content));
 	}
 	
 	private static class EmbedField {

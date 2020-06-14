@@ -3,48 +3,46 @@ package com.github.alex1304.ultimategdbot.core;
 import static java.util.function.Predicate.isEqual;
 
 import com.github.alex1304.ultimategdbot.api.command.CommandFailedException;
+import com.github.alex1304.ultimategdbot.api.command.CommandService;
 import com.github.alex1304.ultimategdbot.api.command.Context;
 import com.github.alex1304.ultimategdbot.api.command.PermissionLevel;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandAction;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDescriptor;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDoc;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandPermission;
+import com.github.alex1304.ultimategdbot.api.database.DatabaseService;
 import com.github.alex1304.ultimategdbot.core.database.BlacklistedIdDao;
 
 import reactor.core.publisher.Mono;
 
 @CommandDescriptor(
 		aliases = "blacklist",
-		shortDescription = "Restrict guilds, channels or users from using the bot."
+		shortDescription = "tr:cmddoc_core_blacklist/short_description"
 )
 @CommandPermission(level = PermissionLevel.BOT_OWNER)
 class BlacklistCommand {
 
 	@CommandAction("add")
-	@CommandDoc("Adds an ID to the blacklist. The ID may refer to a guild, a guild channel or a user in Discord. "
-			+ "If someone attempts to run a command while their ID or the ID of the guild/channel they're using "
-			+ "the command in is blacklisted, the command will be ignored without any side effect. This command "
-			+ "is useful to handle cases of abuse.")
+	@CommandDoc("tr:cmddoc_core_blacklist/run_add")
 	public Mono<Void> runAdd(Context ctx, long id) {
-		return ctx.bot().database()
+		return ctx.bot().service(DatabaseService.class)
 				.withExtension(BlacklistedIdDao.class, dao -> dao.insertIfNotExists(id))
 				.filter(isEqual(true))
-				.switchIfEmpty(Mono.error(new CommandFailedException("This ID is already blacklisted")))
-				.then(Mono.fromRunnable(() -> ctx.bot().commandKernel().blacklist(id)))
-				.then(ctx.reply("**" + id + "** is now blacklisted!")
-						.and(ctx.bot().log("ID added to blacklist: " + id)));
+				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("cmdtext_core_blacklist", "error_already_blacklisted"))))
+				.then(Mono.fromRunnable(() -> ctx.bot().service(CommandService.class).blacklist(id)))
+				.then(ctx.reply(ctx.translate("cmdtext_core_blacklist", "blacklist_success", id))
+						.and(ctx.bot().log(ctx.translate("cmdtext_core_blacklist", "blacklist_log") + ": " + id)));
 	}
 
 	@CommandAction("remove")
-	@CommandDoc("Removes an ID from the blacklist. Once an ID is removed from the blacklist, the user/channel/guild "
-			+ "in question will be able to run bot commands again normally.")
+	@CommandDoc("tr:cmddoc_core_blacklist/run_remove")
 	public Mono<Void> runRemove(Context ctx, long id) {
-		return ctx.bot().database()
+		return ctx.bot().service(DatabaseService.class)
 				.withExtension(BlacklistedIdDao.class, dao -> dao.delete(id))
 				.filter(isEqual(true))
-				.switchIfEmpty(Mono.error(new CommandFailedException("This ID is already not blacklisted")))
-				.then(Mono.fromRunnable(() -> ctx.bot().commandKernel().unblacklist(id)))
-				.then(ctx.reply("**" + id + "** is no longer blacklisted!")
-						.and(ctx.bot().log("ID removed from blacklist: " + id)));
+				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("cmdtext_core_blacklist", "error_already_not_blacklisted"))))
+				.then(Mono.fromRunnable(() -> ctx.bot().service(CommandService.class).unblacklist(id)))
+				.then(ctx.reply(ctx.translate("cmdtext_core_blacklist", "unblacklist_success", id))
+						.and(ctx.bot().log(ctx.translate("cmdtext_core_blacklist", "unblacklist_log") + ": " + id)));
 	}
 }

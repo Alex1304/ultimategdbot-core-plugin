@@ -10,14 +10,14 @@ import reactor.core.publisher.Mono;
 
 @CommandDescriptor(
 		aliases = "logout",
-		shortDescription = "Disconnects the bot from Discord and stops the application."
+		shortDescription = "tr:cmddoc_core_logout/short_description"
 )
 @CommandPermission(level = PermissionLevel.BOT_OWNER)
 class LogoutCommand {
 	
 	@CommandAction
 	public Mono<Void> run(Context ctx) {
-		return ctx.reply("Disconnecting...")
+		return ctx.reply(ctx.translate("cmdtext_core_logout", "disconnecting"))
 				.then(ctx.bot().gateway().logout());
 	}
 }
