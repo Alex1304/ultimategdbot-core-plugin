@@ -55,11 +55,11 @@ public class CorePlugin implements Plugin {
 		return VersionUtils.getGitProperties("META-INF/git/core.git.properties")
 				.map(props -> props.readOptional(GitProperties.APPLICATION_VERSION))
 				.map(version -> PluginMetadata.builder(PLUGIN_NAME)
-					.setDescription("Essential commands for a basic Discord bot")
-					.setVersion(version.orElse(null))
-					.setDevelopers(List.of("Alex1304"))
-					.setUrl("https://github.com/ultimategdbot/ultimategdbot-core-plugin")
-					.build());
+						.setDescription("Essential commands for a basic Discord bot.")
+						.setVersion(version.orElse(null))
+						.setDevelopers(List.of("Alex1304"))
+						.setUrl("https://github.com/ultimategdbot/ultimategdbot-core-plugin")
+						.build());
 	}
 	
 	@Override
