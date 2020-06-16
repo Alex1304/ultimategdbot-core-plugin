@@ -60,20 +60,19 @@ class SetupCommand {
 	@CommandDoc("tr:cmddoc_core_setup/run")
 	public Mono<Void> run(Context ctx) {
 		return ctx.bot().service(DatabaseService.class)
-				.configureGuild(ctx.event().getGuildId().orElseThrow())
+				.configureGuild(ctx, ctx.event().getGuildId().orElseThrow())
 				.collectList()
 				.flatMap(configurators -> {
 					var formattedConfigs = new ArrayList<Mono<String>>();
 					var formattedValuePerEntry = new HashMap<ConfigEntry<?>, String>();
-					formattedConfigs.add(Mono.just(underline(bold(ctx.translate("cmdtext_core_setup", "configurable_features")))));
 					for (var configurator : configurators) {
 						var formattedEntries = new ArrayList<Mono<String>>();
-						formattedEntries.add(Mono.just(underline(configurator.getName())));
+						formattedEntries.add(Mono.just(bold(underline(configurator.getName()))));
 						for (var entry : configurator.getConfigEntries()) {
 							formattedEntries.add(entry.accept(new DisplayVisitor(ctx))
 									.defaultIfEmpty("none")
 									.doOnNext(displayValue -> formattedValuePerEntry.put(entry, displayValue))
-									.map(displayValue -> entry.getDisplayName() + ": " + displayValue)
+									.map(displayValue -> bold(entry.getDisplayName() + ':') + ' ' + displayValue)
 									.map(Markdown::quote));
 						}
 						formattedConfigs.add(Flux.concat(formattedEntries)

@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.immutables.value.Value;
 
 import com.github.alex1304.ultimategdbot.api.Bot;
+import com.github.alex1304.ultimategdbot.api.Translator;
 import com.github.alex1304.ultimategdbot.api.command.CommandService;
 import com.github.alex1304.ultimategdbot.api.database.guildconfig.GuildChannelConfigEntry;
 import com.github.alex1304.ultimategdbot.api.database.guildconfig.GuildConfigData;
@@ -26,18 +27,18 @@ public interface CoreConfigData extends GuildConfigData<CoreConfigData> {
 	Optional<Snowflake> channelChangelogId();
 
 	@Override
-	default GuildConfigurator<CoreConfigData> configurator(Bot bot) {
-		return GuildConfigurator.builder("General settings", this, CoreConfigDao.class)
-				.setDescription("The command prefix that the bot will respond to in this server.")
+	default GuildConfigurator<CoreConfigData> configurator(Translator tr, Bot bot) {
+		return GuildConfigurator.builder(tr.translate("guildconfig_core", "title"), this, CoreConfigDao.class)
+				.setDescription(tr.translate("guildconfig_core", "desc"))
 				.addEntry(StringConfigEntry.<CoreConfigData>builder("prefix")
 						.setValueGetter(forOptionalValue(CoreConfigData::prefix))
 						.setValueSetter((data, value) -> ImmutableCoreConfigData.builder()
 								.from(data)
 								.prefix(Optional.ofNullable(value))
 								.build())
-						.setValidator(Validator.denyingIf(String::isBlank, "cannot be blank")))
+						.setValidator(Validator.denyingIf(String::isBlank, tr.translate("guildconfig_core", "validate_not_blank"))))
 				.addEntry(GuildChannelConfigEntry.<CoreConfigData>builder("channel_changelog")
-						.setDisplayName("channel for bot changelog announcements")
+						.setDisplayName(tr.translate("guildconfig_core", "display_channel_changelog"))
 						.setValueGetter(forOptionalGuildChannel(bot, CoreConfigData::channelChangelogId))
 						.setValueSetter((data, channel) -> ImmutableCoreConfigData.builder()
 								.from(data)
