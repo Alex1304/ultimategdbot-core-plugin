@@ -17,14 +17,14 @@ import reactor.core.publisher.Mono;
 
 @CommandDescriptor(
 		aliases = "ping",
-		shortDescription = "tr:cmddoc_core_ping/short_description"
+		shortDescription = "tr:strings_core/ping_desc"
 )
 class PingCommand {
 
 	@CommandAction
-	@CommandDoc("tr:cmddoc_core_ping/run")
+	@CommandDoc("tr:strings_core/ping_run")
 	public Mono<Void> run(Context ctx) {
-		return ctx.reply(ctx.translate("cmdtext_core_ping", "pong"))
+		return ctx.reply(ctx.translate("strings_core", "pong"))
 				.elapsed()
 				.flatMap(function((apiLatency, message) -> message.edit(
 						spec -> spec.setContent(computeLatency(ctx, ctx.event(), apiLatency)))))
@@ -32,12 +32,12 @@ class PingCommand {
 	}
 	
 	private static String computeLatency(Translator tr, MessageCreateEvent event, long apiLatency) {
-		return tr.translate("cmdtext_core_ping", "pong") + '\n'
-				+ tr.translate("cmdtext_core_ping", "api_latency") + ' ' + DurationUtils.format(Duration.ofMillis(apiLatency)) + "\n"
-				+ tr.translate("cmdtext_core_ping", "gateway_latency") + ' ' + event.getClient()
+		return tr.translate("strings_core", "pong") + '\n'
+				+ tr.translate("strings_core", "api_latency") + ' ' + DurationUtils.format(Duration.ofMillis(apiLatency)) + "\n"
+				+ tr.translate("strings_core", "gateway_latency") + ' ' + event.getClient()
 						.getGatewayClient(event.getShardInfo().getIndex())
 						.map(GatewayClient::getResponseTime)
 						.map(DurationUtils::format)
-						.orElse(tr.translate("cmdtext_core_ping", "unknown"));
+						.orElse(tr.translate("strings_core", "unknown"));
 	}
 }

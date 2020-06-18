@@ -28,17 +28,17 @@ public interface CoreConfigData extends GuildConfigData<CoreConfigData> {
 
 	@Override
 	default GuildConfigurator<CoreConfigData> configurator(Translator tr, Bot bot) {
-		return GuildConfigurator.builder(tr.translate("guildconfig_core", "title"), this, CoreConfigDao.class)
-				.setDescription(tr.translate("guildconfig_core", "desc"))
+		return GuildConfigurator.builder(tr.translate("strings_core", "title"), this, CoreConfigDao.class)
+				.setDescription(tr.translate("strings_core", "desc"))
 				.addEntry(StringConfigEntry.<CoreConfigData>builder("prefix")
 						.setValueGetter(forOptionalValue(CoreConfigData::prefix))
 						.setValueSetter((data, value) -> ImmutableCoreConfigData.builder()
 								.from(data)
 								.prefix(Optional.ofNullable(value))
 								.build())
-						.setValidator(Validator.denyingIf(String::isBlank, tr.translate("guildconfig_core", "validate_not_blank"))))
+						.setValidator(Validator.denyingIf(String::isBlank, tr.translate("strings_core", "validate_not_blank"))))
 				.addEntry(GuildChannelConfigEntry.<CoreConfigData>builder("channel_changelog")
-						.setDisplayName(tr.translate("guildconfig_core", "display_channel_changelog"))
+						.setDisplayName(tr.translate("strings_core", "display_channel_changelog"))
 						.setValueGetter(forOptionalGuildChannel(bot, CoreConfigData::channelChangelogId))
 						.setValueSetter((data, channel) -> ImmutableCoreConfigData.builder()
 								.from(data)

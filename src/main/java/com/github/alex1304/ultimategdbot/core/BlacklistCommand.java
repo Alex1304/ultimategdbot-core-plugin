@@ -18,34 +18,34 @@ import reactor.core.publisher.Mono;
 
 @CommandDescriptor(
 		aliases = "blacklist",
-		shortDescription = "tr:cmddoc_core_blacklist/short_description"
+		shortDescription = "tr:strings_core/blacklist_desc"
 )
 @CommandPermission(level = PermissionLevel.BOT_OWNER)
 class BlacklistCommand {
 
 	@CommandAction("add")
-	@CommandDoc("tr:cmddoc_core_blacklist/run_add")
+	@CommandDoc("tr:strings_core/blacklist_run_add")
 	public Mono<Void> runAdd(Context ctx, long id) {
 		return ctx.bot().service(DatabaseService.class)
 				.withExtension(BlacklistedIdDao.class, dao -> dao.insertIfNotExists(id))
 				.filter(isEqual(true))
-				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("cmdtext_core_blacklist", "error_already_blacklisted"))))
+				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("strings_core", "error_already_blacklisted"))))
 				.then(Mono.fromRunnable(() -> ctx.bot().service(CommandService.class).blacklist(id)))
-				.then(ctx.reply(ctx.translate("cmdtext_core_blacklist", "blacklist_success", id))
+				.then(ctx.reply(ctx.translate("strings_core", "blacklist_success", id))
 						.and(ctx.bot().log(Translator.to(ctx.bot().service(CommandService.class).getDefaultLocale())
-								.translate("cmdtext_core_blacklist", "blacklist_log") + ": " + id)));
+								.translate("strings_core", "blacklist_log") + ": " + id)));
 	}
 
 	@CommandAction("remove")
-	@CommandDoc("tr:cmddoc_core_blacklist/run_remove")
+	@CommandDoc("tr:strings_core/blacklist_run_remove")
 	public Mono<Void> runRemove(Context ctx, long id) {
 		return ctx.bot().service(DatabaseService.class)
 				.withExtension(BlacklistedIdDao.class, dao -> dao.delete(id))
 				.filter(isEqual(true))
-				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("cmdtext_core_blacklist", "error_already_not_blacklisted"))))
+				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("strings_core", "error_already_not_blacklisted"))))
 				.then(Mono.fromRunnable(() -> ctx.bot().service(CommandService.class).unblacklist(id)))
-				.then(ctx.reply(ctx.translate("cmdtext_core_blacklist", "unblacklist_success", id))
+				.then(ctx.reply(ctx.translate("strings_core", "unblacklist_success", id))
 						.and(ctx.bot().log(Translator.to(ctx.bot().service(CommandService.class).getDefaultLocale())
-								.translate("cmdtext_core_blacklist", "unblacklist_log") + ": " + id)));
+								.translate("strings_core", "unblacklist_log") + ": " + id)));
 	}
 }

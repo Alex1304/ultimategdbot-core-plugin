@@ -19,12 +19,12 @@ import reactor.core.publisher.Mono;
 
 @CommandDescriptor(
 		aliases = "runtime",
-		shortDescription = "tr:cmddoc_core_runtime/short_description"
+		shortDescription = "tr:strings_core/runtime_desc"
 )
 class RuntimeCommand {
 
 	@CommandAction
-	@CommandDoc("tr:cmddoc_core_runtime/run")
+	@CommandDoc("tr:strings_core/runtime_run")
 	public Mono<Void> run(Context ctx) {
 		return ctx.channel().typeUntil(
 				Mono.zip(objArray -> Flux.fromArray(objArray).cast(EmbedField.class).collectList(),
@@ -41,8 +41,8 @@ class RuntimeCommand {
 	}
 
 	private static Mono<EmbedField> uptime(Translator tr) {
-		return Mono.just(new EmbedField(tr.translate("cmdtext_core_runtime", "uptime"),
-				tr.translate("cmdtext_core_runtime", "uptime_value", DurationUtils.format(
+		return Mono.just(new EmbedField(tr.translate("strings_core", "uptime"),
+				tr.translate("strings_core", "uptime_value", DurationUtils.format(
 						Duration.ofMillis(ManagementFactory.getRuntimeMXBean().getUptime()).withNanos(0)))));
 	}
 	
@@ -53,38 +53,38 @@ class RuntimeCommand {
 					var max = memStats.maxMemory;
 					var used = memStats.usedMemory;
 					var sb = new StringBuilder();
-					sb.append(ctx.translate("cmdtext_core_runtime", "max_ram")).append(' ').append(SystemUnit.format(max)).append("\n");
-					sb.append(ctx.translate("cmdtext_core_runtime", "jvm_size")).append(' ').append(SystemUnit.format(total))
+					sb.append(ctx.translate("strings_core", "max_ram")).append(' ').append(SystemUnit.format(max)).append("\n");
+					sb.append(ctx.translate("strings_core", "jvm_size")).append(' ').append(SystemUnit.format(total))
 							.append(" (").append(String.format("%.2f", total * 100 / (double) max)).append("%)\n");
-					sb.append(ctx.translate("cmdtext_core_runtime", "gc_run")).append(' ')
+					sb.append(ctx.translate("strings_core", "gc_run")).append(' ')
 							.append(memStats.elapsedSinceLastGC()
-									.map(t -> ctx.translate("cmdtext_core_runtime", "ago", DurationUtils.format(t)))
+									.map(t -> ctx.translate("strings_common", "ago", DurationUtils.format(t)))
 									.orElse("Never"))
 							.append("\n");
-					sb.append(ctx.translate("cmdtext_core_runtime", "ram_after_gc")).append(' ').append(SystemUnit.format(used))
+					sb.append(ctx.translate("strings_core", "ram_after_gc")).append(' ').append(SystemUnit.format(used))
 							.append(" (").append(String.format("%.2f", used * 100 / (double) max)).append("%)\n");
-					return new EmbedField(ctx.translate("cmdtext_core_runtime", "memory_usage"), sb.toString());
+					return new EmbedField(ctx.translate("strings_core", "memory_usage"), sb.toString());
 				});
 	}
 	
 	private static Mono<EmbedField> shardInfo(Context ctx) {
 		var shardInfo = ctx.event().getShardInfo();
-		return Mono.just(new EmbedField(ctx.translate("cmdtext_core_runtime", "gateway_sharding_info"),
-				ctx.translate("cmdtext_core_runtime", "shard_index", shardInfo.getIndex()) + '\n'
-				+ ctx.translate("cmdtext_core_runtime", "shard_count", shardInfo.getCount())));
+		return Mono.just(new EmbedField(ctx.translate("strings_core", "gateway_sharding_info"),
+				ctx.translate("strings_core", "shard_index", shardInfo.getIndex()) + '\n'
+				+ ctx.translate("strings_core", "shard_count", shardInfo.getCount())));
 	}
 	
 	private static Mono<EmbedField> cacheInfo(Context ctx) {
 		final String[] storeNames = {
-				ctx.translate("cmdtext_core_runtime", "channels"),
-				ctx.translate("cmdtext_core_runtime", "emojis"),
-				ctx.translate("cmdtext_core_runtime", "guilds"),
-				ctx.translate("cmdtext_core_runtime", "messages"),
-				ctx.translate("cmdtext_core_runtime", "members"),
-				ctx.translate("cmdtext_core_runtime", "presences"),
-				ctx.translate("cmdtext_core_runtime", "roles"),
-				ctx.translate("cmdtext_core_runtime", "users"),
-				ctx.translate("cmdtext_core_runtime", "voice_states")
+				ctx.translate("strings_core", "channels"),
+				ctx.translate("strings_core", "emojis"),
+				ctx.translate("strings_core", "guilds"),
+				ctx.translate("strings_core", "messages"),
+				ctx.translate("strings_core", "members"),
+				ctx.translate("strings_core", "presences"),
+				ctx.translate("strings_core", "roles"),
+				ctx.translate("strings_core", "users"),
+				ctx.translate("strings_core", "voice_states")
 		};
 		var stateView = ctx.bot().gateway().getGatewayResources().getStateView();
 		return Mono.zip(
@@ -107,7 +107,7 @@ class RuntimeCommand {
 				}
 				return sb.toString();
 			})
-			.map(content -> new EmbedField(ctx.translate("cmdtext_core_runtime", "cache_usage"), content));
+			.map(content -> new EmbedField(ctx.translate("strings_core", "cache_usage"), content));
 	}
 	
 	private static class EmbedField {

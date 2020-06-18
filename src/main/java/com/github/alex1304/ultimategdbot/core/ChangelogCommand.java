@@ -36,7 +36,7 @@ import reactor.util.retry.Retry;
 
 @CommandDescriptor(
 		aliases = "changelog",
-		shortDescription = "tr:cmddoc_core_changelog/short_description"
+		shortDescription = "tr:strings_core/changelog_desc"
 )
 @CommandPermission(level = PermissionLevel.BOT_OWNER)
 public class ChangelogCommand {
@@ -44,10 +44,10 @@ public class ChangelogCommand {
 	private final HttpClient fileClient = HttpClient.create().headers(h -> h.add("Content-Type", "text/plain"));
 	
 	@CommandAction
-	@CommandDoc("tr:cmddoc_core_changelog/run")
+	@CommandDoc("tr:strings_core/changelog_run")
 	public Mono<Void> run(Context ctx) {
 		if (ctx.event().getMessage().getAttachments().size() != 1) {
-			return Mono.error(new CommandFailedException(ctx.translate("cmdtext_core_changelog", "error_attachment")));
+			return Mono.error(new CommandFailedException(ctx.translate("strings_core", "error_attachment")));
 		}
 		return getFileContent(ctx, ctx.event().getMessage().getAttachments().stream().findAny().orElseThrow())
 				.map(String::lines)
@@ -56,7 +56,7 @@ public class ChangelogCommand {
 				.collectList()
 				.map(lines -> parse(ctx, ctx.author(), lines))
 				.flatMap(embedData -> ctx.bot().service(InteractiveMenuService.class).create(m -> {
-							m.setContent(ctx.translate("cmdtext_core_changelog", "confirm"));
+							m.setContent(ctx.translate("strings_core", "confirm"));
 							m.setEmbed(embed -> {
 								embed.setTitle(embedData.title().get());
 								embed.setColor(Color.of(embedData.color().get()));
@@ -64,7 +64,7 @@ public class ChangelogCommand {
 										embed.addField(fieldData.name(), fieldData.value(), fieldData.inline().get()));
 							});
 						})
-						.addReactionItem("success", interaction -> ctx.reply(ctx.translate("cmdtext_core_changelog", "wait"))
+						.addReactionItem("success", interaction -> ctx.reply(ctx.translate("strings_core", "wait"))
 								.then(ctx.bot().service(DatabaseService.class)
 										.withExtension(CoreConfigDao.class, CoreConfigDao::getAllChangelogChannels)
 										.flatMapMany(Flux::fromIterable)
@@ -73,7 +73,7 @@ public class ChangelogCommand {
 												.embed(Possible.of(embedData))
 												.build())
 												.onErrorResume(e -> Mono.empty()))
-										.then(ctx.reply(ctx.translate("cmdtext_core_changelog", "done"))))
+										.then(ctx.reply(ctx.translate("strings_core", "done"))))
 								.then())
 						.addReactionItem("cross", interaction -> Mono.fromRunnable(interaction::closeMenu))
 						.deleteMenuOnClose(true)
@@ -116,7 +116,7 @@ public class ChangelogCommand {
 			}
 		}
 		if (title == null || fieldNames.size() != fieldContents.size()) {
-			throw new CommandFailedException(tr.translate("cmdtext_core_changelog", "error_malformed"));
+			throw new CommandFailedException(tr.translate("strings_core", "error_malformed"));
 		}
 		var fTitle = title;
 		var fields = new ArrayList<EmbedFieldData>();
@@ -147,13 +147,13 @@ public class ChangelogCommand {
 				.responseSingle((response, content) -> {
 					if (response.status().code() / 100 != 2) {
 						return Mono.error(new CommandFailedException(
-								tr.translate("cmdtext_core_changelog", "error_cdn", response.status().toString())));
+								tr.translate("strings_core", "error_cdn", response.status().toString())));
 					}
 					return content.asString();
 				})
 				.retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1))
 						.maxBackoff(Duration.ofMinutes(1))
 						.filter(IOException.class::isInstance))
-				.timeout(Duration.ofMinutes(2), Mono.error(new CommandFailedException(tr.translate("cmdtext_core_changelog", "error_timeout"))));
+				.timeout(Duration.ofMinutes(2), Mono.error(new CommandFailedException(tr.translate("strings_core", "error_timeout"))));
 	}
 }

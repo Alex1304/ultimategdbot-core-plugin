@@ -30,18 +30,18 @@ import reactor.util.function.Tuples;
 
 @CommandDescriptor(
 		aliases = { "help", "manual" },
-		shortDescription = "tr:cmddoc_core_help/short_description"
+		shortDescription = "tr:strings_core/help_desc"
 )
 class HelpCommand {
 	
 	@CommandAction
-	@CommandDoc("tr:cmddoc_core_help/run")
+	@CommandDoc("tr:strings_core/help_run")
 	public Mono<Void> run(Context ctx, @Nullable String command, @Nullable String subcommand) {
 		return command == null ? displayCommandList(ctx) : displayCommandDocumentation(ctx, command.toLowerCase(), subcommand);
 	}
 
 	private static Mono<Void> displayCommandList(Context ctx) {
-		var sb = new StringBuilder(ctx.translate("cmdtext_core_help", "command_list", ctx.prefixUsed()) + "\n\n");
+		var sb = new StringBuilder(ctx.translate("strings_core", "command_list", ctx.prefixUsed()) + "\n\n");
 		var commandService = ctx.bot().service(CommandService.class);
 		return ctx.event().getMessage().getChannel()
 				.flatMap(channel -> Flux.fromIterable(commandService.getCommandProviders())
@@ -75,7 +75,7 @@ class HelpCommand {
 		var selectedSubcommand = subcommand == null ? "" : subcommand.toLowerCase();
 		var command = new AtomicReference<Command>();
 		return Mono.justOrEmpty(ctx.bot().service(CommandService.class).getCommandByAlias(commandName))
-				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("cmdtext_core_help", "error_command_not_found", commandName))))
+				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("strings_core", "error_command_not_found", commandName))))
 				.doOnNext(command::set)
 				.flatMap(cmd -> findAvailableSubcommands(cmd, ctx).collectList().map(subcommands -> Tuples.of(subcommands, cmd)))
 				.flatMap(function((subcommands, cmd) -> {
@@ -87,11 +87,11 @@ class HelpCommand {
 					}
 					if (!selectedSubcommand.isEmpty()) {
 						return Mono.error(new CommandFailedException(
-								ctx.translate("cmdtext_core_help", "error_subcommand_not_found", selectedSubcommand, commandName) + '\n'
+								ctx.translate("strings_core", "error_subcommand_not_found", selectedSubcommand, commandName) + '\n'
 										+ "Available subcommands:\n" + formattedSubcommands));
 					}
 					return Mono.error(new CommandFailedException(
-							ctx.translate("cmdtext_core_help", "error_subcommand_required", commandName) + '\n'
+							ctx.translate("strings_core", "error_subcommand_required", commandName) + '\n'
 									+ formattedSubcommands));
 				}))
 				.map(cmd -> formatDoc(
@@ -122,15 +122,15 @@ class HelpCommand {
 		var sb = new StringBuilder(code(prefix + selectedCommand))
 				.append(" - ")
 				.append(doc.getShortDescription())
-				.append(selectedSubcommand.isEmpty() ? "" : "\n" + tr.translate("cmdtext_core_help", "subcommand") + " " + code(selectedSubcommand))
+				.append(selectedSubcommand.isEmpty() ? "" : "\n" + tr.translate("strings_core", "subcommand") + " " + code(selectedSubcommand))
 				.append("\n\n")
-				.append(bold(underline(tr.translate("cmdtext_core_help", "syntax"))))
+				.append(bold(underline(tr.translate("strings_core", "syntax"))))
 				.append("\n")
 				.append(codeBlock(prefix + joinAliases(cmd) + (selectedSubcommand.isEmpty() ? "" : " " + selectedSubcommand) + " " + entry.getSyntax()))
 				.append(entry.getDescription())
 				.append("\n");
 		if (!entry.getFlagInfo().isEmpty()) {
-			sb.append("\n").append(bold(underline(tr.translate("cmdtext_core_help", "flags")))).append("\n");
+			sb.append("\n").append(bold(underline(tr.translate("strings_core", "flags")))).append("\n");
 			entry.getFlagInfo().forEach((name, info) -> {
 				sb.append(code(flagPrefix + name + (info.getValueFormat().isBlank() ? "" : "=<" + info.getValueFormat() + ">")))
 						.append(": ")
@@ -139,7 +139,7 @@ class HelpCommand {
 			});
 		}
 		if (doc.getEntries().size() > 1) {
-			sb.append("\n").append(bold(underline(tr.translate("cmdtext_core_help", "see_also")))).append("\n");
+			sb.append("\n").append(bold(underline(tr.translate("strings_core", "see_also")))).append("\n");
 			doc.getEntries().forEach((otherPage, otherEntry) -> {
 				if (otherPage.equals(selectedSubcommand)) {
 					return;
