@@ -3,6 +3,7 @@ package com.github.alex1304.ultimategdbot.core;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
@@ -16,6 +17,7 @@ import com.github.alex1304.ultimategdbot.api.command.PermissionChecker;
 import com.github.alex1304.ultimategdbot.api.command.PermissionLevel;
 import com.github.alex1304.ultimategdbot.api.command.menu.InteractiveMenuService;
 import com.github.alex1304.ultimategdbot.api.database.DatabaseService;
+import com.github.alex1304.ultimategdbot.api.localization.LocalizationService;
 import com.github.alex1304.ultimategdbot.api.service.Service;
 import com.github.alex1304.ultimategdbot.api.util.VersionUtils;
 import com.github.alex1304.ultimategdbot.core.database.BlacklistedIdDao;
@@ -47,6 +49,7 @@ public class CorePlugin implements Plugin {
 				.doOnNext(bot.service(CommandService.class)::addProvider)
 				.and(initBlacklist(bot))
 				.and(initPrefixes(bot))
+				.and(initLocales(bot))
 				.and(initMemoryStats());
 	}
 
@@ -121,6 +124,19 @@ public class CorePlugin implements Plugin {
 				.withExtension(CoreConfigDao.class, dao -> dao.getAllNonDefaultPrefixes(defaultPrefix))
 				.flatMapMany(Flux::fromIterable)
 				.doOnNext(data -> commandService.setPrefixForGuild(data.guildId().asLong(), data.prefix().orElseThrow()))
+				.then();
+	}
+	
+	private static Mono<Void> initLocales(Bot bot) {
+		if (!bot.hasService(LocalizationService.class)) {
+			return Mono.empty();
+		}
+		var localizationService = bot.service(LocalizationService.class);
+		return bot.service(DatabaseService.class)
+				.withExtension(CoreConfigDao.class, dao -> dao.getAllNonDefaultLocales(bot.getLocale().toLanguageTag()))
+				.flatMapMany(Flux::fromIterable)
+				.doOnNext(data -> localizationService.setLocaleForGuild(data.guildId().asLong(),
+						Locale.forLanguageTag(data.locale().orElseThrow())))
 				.then();
 	}
 	

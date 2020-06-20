@@ -21,12 +21,17 @@ public interface CoreConfigDao extends GuildConfigDao<CoreConfigData> {
 	@Override
 	@SqlUpdate("UPDATE " + TABLE + " SET "
 			+ "prefix = DEFAULT(prefix), "
-			+ "channel_changelog_id = DEFAULT(channel_changelog_id) "
+			+ "channel_changelog_id = DEFAULT(channel_changelog_id), "
+			+ "locale = DEFAULT(locale) "
 			+ "WHERE guild_id = ?")
 	void reset(long guildId);
 
 	@Override
-	@SqlUpdate("UPDATE " + TABLE + " SET prefix = :prefix, channel_changelog_id = :channelChangelogId WHERE guild_id = :guildId")
+	@SqlUpdate("UPDATE " + TABLE + " SET "
+			+ "prefix = :prefix, "
+			+ "channel_changelog_id = :channelChangelogId, "
+			+ "locale = :locale "
+			+ "WHERE guild_id = :guildId")
 	void update(@BindPojo CoreConfigData data);
 
 	@Override
@@ -35,6 +40,9 @@ public interface CoreConfigDao extends GuildConfigDao<CoreConfigData> {
 	
 	@SqlQuery("SELECT guild_id, prefix FROM " + TABLE + " WHERE prefix IS NOT NULL AND prefix != '' AND prefix != ?")
 	List<CoreConfigData> getAllNonDefaultPrefixes(String defaultPrefix);
+	
+	@SqlQuery("SELECT guild_id, locale FROM " + TABLE + " WHERE locale IS NOT NULL AND locale != '' AND locale != ?")
+	List<CoreConfigData> getAllNonDefaultLocales(String defaultLocale);
 	
 	@SqlQuery("SELECT channel_changelog_id FROM " + TABLE + " WHERE channel_changelog_id IS NOT NULL")
 	List<Snowflake> getAllChangelogChannels();

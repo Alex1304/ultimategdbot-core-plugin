@@ -2,7 +2,6 @@ package com.github.alex1304.ultimategdbot.core;
 
 import static java.util.function.Predicate.isEqual;
 
-import com.github.alex1304.ultimategdbot.api.Translator;
 import com.github.alex1304.ultimategdbot.api.command.CommandFailedException;
 import com.github.alex1304.ultimategdbot.api.command.CommandService;
 import com.github.alex1304.ultimategdbot.api.command.Context;
@@ -32,8 +31,7 @@ class BlacklistCommand {
 				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("strings_core", "error_already_blacklisted"))))
 				.then(Mono.fromRunnable(() -> ctx.bot().service(CommandService.class).blacklist(id)))
 				.then(ctx.reply(ctx.translate("strings_core", "blacklist_success", id))
-						.and(ctx.bot().log(Translator.to(ctx.bot().service(CommandService.class).getDefaultLocale())
-								.translate("strings_core", "blacklist_log") + ": " + id)));
+						.and(ctx.bot().log(ctx.bot().translate("strings_core", "blacklist_log") + ": " + id)));
 	}
 
 	@CommandAction("remove")
@@ -45,7 +43,6 @@ class BlacklistCommand {
 				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("strings_core", "error_already_not_blacklisted"))))
 				.then(Mono.fromRunnable(() -> ctx.bot().service(CommandService.class).unblacklist(id)))
 				.then(ctx.reply(ctx.translate("strings_core", "unblacklist_success", id))
-						.and(ctx.bot().log(Translator.to(ctx.bot().service(CommandService.class).getDefaultLocale())
-								.translate("strings_core", "unblacklist_log") + ": " + id)));
+						.and(ctx.bot().log(ctx.bot().translate("strings_core", "unblacklist_log") + ": " + id)));
 	}
 }

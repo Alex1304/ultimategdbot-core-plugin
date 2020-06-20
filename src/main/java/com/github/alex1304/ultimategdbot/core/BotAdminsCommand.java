@@ -3,9 +3,7 @@ package com.github.alex1304.ultimategdbot.core;
 import static discord4j.core.retriever.EntityRetrievalStrategy.STORE_FALLBACK_REST;
 import static java.util.function.Predicate.isEqual;
 
-import com.github.alex1304.ultimategdbot.api.Translator;
 import com.github.alex1304.ultimategdbot.api.command.CommandFailedException;
-import com.github.alex1304.ultimategdbot.api.command.CommandService;
 import com.github.alex1304.ultimategdbot.api.command.Context;
 import com.github.alex1304.ultimategdbot.api.command.PermissionLevel;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandAction;
@@ -58,9 +56,8 @@ class BotAdminsCommand {
 				.filter(isEqual(true))
 				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("strings_core", "error_already_admin"))))
 				.then(ctx.reply(ctx.translate("strings_core", "admin_grant_success", user.getTag()))
-						.and(ctx.bot().log(Translator.to(ctx.bot().service(CommandService.class).getDefaultLocale())
-								.translate("strings_core", "admin_grant_log") + ": **" 
-										+ user.getTag() + "** (" + user.getId().asString() + ")")));
+						.and(ctx.bot().log(ctx.bot().translate("strings_core", "admin_grant_log") + ": **" 
+								+ user.getTag() + "** (" + user.getId().asString() + ")")));
 	}
 	
 	@CommandAction("revoke")
@@ -71,8 +68,7 @@ class BotAdminsCommand {
 				.filter(isEqual(true))
 				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("strings_core", "error_already_not_admin"))))
 				.then(ctx.reply(ctx.translate("strings_core", "admin_revoke_success", user.getTag()))
-						.and(ctx.bot().log(Translator.to(ctx.bot().service(CommandService.class).getDefaultLocale())
-								.translate("strings_core", "admin_revoke_log") + ": **" 
-										+ user.getTag() + "** (" + user.getId().asString() + ")")));
+						.and(ctx.bot().log(ctx.bot().translate("strings_core", "admin_revoke_log") + ": **" 
+								+ user.getTag() + "** (" + user.getId().asString() + ")")));
 	}
 }

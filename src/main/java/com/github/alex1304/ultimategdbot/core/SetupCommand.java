@@ -2,10 +2,12 @@ package com.github.alex1304.ultimategdbot.core;
 
 import static com.github.alex1304.ultimategdbot.api.util.Markdown.bold;
 import static com.github.alex1304.ultimategdbot.api.util.Markdown.underline;
+import static java.text.Collator.SECONDARY;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toUnmodifiableList;
 
+import java.text.Collator;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -94,6 +96,9 @@ class SetupCommand {
 							resetInteraction.closeMenu();
 							return handleEditInteraction(ctx, configurators, formattedValuePerEntry, true);
 						})
+						.addReactionItem(ctx.bot().service(InteractiveMenuService.class)
+								.getPaginationControls()
+								.getCloseEmoji(), interaction -> Mono.fromRunnable(interaction::closeMenu))
 						.deleteMenuOnClose(true)
 						.open(ctx)));
 	}
@@ -139,7 +144,9 @@ class SetupCommand {
 											.then(ctx.reply("✅ " + ctx.translate("strings_core", "reset_success")))
 											.then();
 								})
-								.addReactionItem("🚫", interaction -> Mono.fromRunnable(interaction::closeMenu))
+								.addReactionItem(ctx.bot().service(InteractiveMenuService.class)
+										.getPaginationControls()
+										.getCloseEmoji(), interaction -> Mono.fromRunnable(interaction::closeMenu))
 								.open(ctx); 
 					}
 					return handleSelectedFeatureInteraction(ctx, selectInteraction, configurator, formattedValuePerEntry);
@@ -165,16 +172,18 @@ class SetupCommand {
 				.flatMap(menu -> menu
 						.addReactionItem("⏭️", interaction -> goToNextEntry(ctx, entryQueue, formattedValuePerEntry,
 								configurator, interaction.getMenuMessage(), interaction::closeMenu))
+						.addReactionItem("🔄", interaction -> entryQueue.element().setValue(null)
+								.then(goToNextEntry(ctx, entryQueue, formattedValuePerEntry, configurator,
+										interaction.getMenuMessage(), interaction::closeMenu)))
+						.addReactionItem("✅", interaction -> endConfiguration(configurator, ctx, interaction::closeMenu))
 						.addReactionItem("🚫", __ -> Mono.error(new CommandFailedException(
 								ctx.translate("strings_core", "error_configuration_cancelled"))))
 						.addMessageItem("", interaction -> {
 							var input = interaction.getEvent().getMessage().getContent();
 							var currentEntry = entryQueue.element();
-							var editEntry = input.equalsIgnoreCase("none")
-									? currentEntry.setValue(null)
-									: currentEntry.accept(new EditVisitor(ctx, input)).onErrorMap(ValidationException.class,
-											e -> new UnexpectedReplyException(ctx.translate("strings_core", "error_constraint_violation")
-													+ ' ' + e.getMessage()));
+							var editEntry = currentEntry.accept(new EditVisitor(ctx, input)).onErrorMap(ValidationException.class,
+									e -> new UnexpectedReplyException(ctx.translate("strings_core", "error_constraint_violation")
+											+ ' ' + e.getMessage()));
 							return editEntry.then(goToNextEntry(ctx, entryQueue, formattedValuePerEntry, configurator,
 									interaction.getMenuMessage(), interaction::closeMenu));
 						})
@@ -194,10 +203,14 @@ class SetupCommand {
 				.then();
 		return Mono.fromRunnable(entryQueue::remove)
 				.then(Mono.defer(() -> entryQueue.isEmpty()
-						? configurator.saveConfig(ctx.bot().service(DatabaseService.class))
-								.then(ctx.reply(":white_check_mark: " + ctx.translate("strings_core", "configuration_done"))
-										.and(Mono.fromRunnable(menuCloser)))
+						? endConfiguration(configurator, ctx, menuCloser)
 						: goToNextEntry));
+	}
+	
+	private static Mono<Void> endConfiguration(GuildConfigurator<?> configurator, Context ctx, Runnable menuCloser) {
+		return configurator.saveConfig(ctx.bot().service(DatabaseService.class))
+				.then(ctx.reply(":white_check_mark: " + ctx.translate("strings_core", "configuration_done"))
+						.and(Mono.fromRunnable(menuCloser)));
 	}
 	
 	private static class DisplayVisitor implements ConfigEntryVisitor<String> {
@@ -292,11 +305,12 @@ class SetupCommand {
 		}
 		
 		private String promptSet(ConfigEntry<?> entry, String expecting) {
-			return Markdown.bold(entry.getDisplayName()) + " (" + configurator.getName() + ")\n"
-					+ tr.translate("strings_core", "current_value") + ' ' + currentValue + "\n\n"
-					+ Markdown.bold(tr.translate("strings_core", "current_value")
-							+ (expecting == null ? "" : " (" + expecting + ")") + ":") + "\n"
-					+ Markdown.italic(tr.translate("strings_core", "react_skip"));
+			return Markdown.bold(entry.getDisplayName()) + " (" + configurator.getName() + ")\n\n"
+					+ (entry.getDescription().isEmpty() ? "" : entry.getDescription() + "\n\n")
+					+ Markdown.bold(tr.translate("strings_core", "current_value")) + ' ' + currentValue + '\n'
+					+ tr.translate("strings_core", "react_entry") + '\n'
+					+ Markdown.bold(tr.translate("strings_core", "prompt_new_value")
+							+ (expecting == null ? "" : " (" + expecting + ")") + ':') + '\n';
 		}
 	}
 	
@@ -334,10 +348,16 @@ class SetupCommand {
 
 		@Override
 		public Mono<Void> visit(BooleanConfigEntry entry) {
-			if (!input.equalsIgnoreCase("yes") && !input.equalsIgnoreCase("no")) {
+			var collator = Collator.getInstance(context.getLocale());
+			collator.setStrength(SECONDARY);
+			var yes = context.translate("strings_common", "yes");
+			var no = context.translate("strings_common", "no");
+			var isYes = collator.compare(input, yes) == 0;
+			var isNo = collator.compare(input, no) == 0;
+			if (!isYes && !isNo) {
 				return Mono.error(new UnexpectedReplyException(context.translate("strings_core", "error_expected_boolean")));
 			}
-			return entry.setValue(input.equalsIgnoreCase("yes"));
+			return entry.setValue(isYes);
 		}
 
 		@Override
