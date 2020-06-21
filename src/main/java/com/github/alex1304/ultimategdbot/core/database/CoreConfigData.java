@@ -34,17 +34,17 @@ public interface CoreConfigData extends GuildConfigData<CoreConfigData> {
 
 	@Override
 	default GuildConfigurator<CoreConfigData> configurator(Translator tr, Bot bot) {
-		return GuildConfigurator.builder(tr.translate("strings.core", "core_guildconfig_title"), this, CoreConfigDao.class)
-				.setDescription(tr.translate("strings.core", "core_guildconfig_desc"))
+		return GuildConfigurator.builder(tr.translate("CoreStrings", "core_guildconfig_title"), this, CoreConfigDao.class)
+				.setDescription(tr.translate("CoreStrings", "core_guildconfig_desc"))
 				.addEntry(StringConfigEntry.<CoreConfigData>builder("prefix")
 						.setValueGetter(forOptionalValue(CoreConfigData::prefix))
 						.setValueSetter((data, value) -> ImmutableCoreConfigData.builder()
 								.from(data)
 								.prefix(Optional.ofNullable(value))
 								.build())
-						.setValidator(Validator.denyingIf(String::isBlank, tr.translate("strings.core", "validate_not_blank"))))
+						.setValidator(Validator.denyingIf(String::isBlank, tr.translate("CoreStrings", "validate_not_blank"))))
 				.addEntry(GuildChannelConfigEntry.<CoreConfigData>builder("channel_changelog")
-						.setDisplayName(tr.translate("strings.core", "display_channel_changelog"))
+						.setDisplayName(tr.translate("CoreStrings", "display_channel_changelog"))
 						.setValueGetter(forOptionalGuildChannel(bot, CoreConfigData::channelChangelogId))
 						.setValueSetter((data, channel) -> ImmutableCoreConfigData.builder()
 								.from(data)
@@ -52,14 +52,14 @@ public interface CoreConfigData extends GuildConfigData<CoreConfigData> {
 								.build()))
 				.addEntry(StringConfigEntry.<CoreConfigData>builder("locale")
 						.setDisplayName("language")
-						.setDescription(tr.translate("strings.core", "desc_locale") + '\n' + displayLocaleList(bot))
+						.setDescription(tr.translate("CoreStrings", "desc_locale") + '\n' + displayLocaleList(bot))
 						.setValueGetter(forOptionalValue(CoreConfigData::locale))
 						.setValueSetter((data, value) -> ImmutableCoreConfigData.builder()
 								.from(data)
 								.locale(Optional.ofNullable(value))
 								.build())
 						.setValidator(Validator.allowingIf(value -> isLocaleSupported(bot, value),
-								tr.translate("strings.core", "unrecognized_locale"))))
+								tr.translate("CoreStrings", "unrecognized_locale"))))
 				.onSave(data -> {
 					bot.service(CommandService.class)
 							.setPrefixForGuild(data.guildId().asLong(), data.prefix().orElse(null));

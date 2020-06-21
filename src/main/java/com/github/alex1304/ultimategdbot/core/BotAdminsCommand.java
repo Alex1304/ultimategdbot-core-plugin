@@ -20,13 +20,13 @@ import reactor.core.publisher.Mono;
 
 @CommandDescriptor(
 		aliases = "botadmins",
-		shortDescription = "tr:strings.core/botadmins_desc"
+		shortDescription = "tr:CoreStrings/botadmins_desc"
 )
 @CommandPermission(level = PermissionLevel.BOT_OWNER)
 class BotAdminsCommand {
 
 	@CommandAction
-	@CommandDoc("tr:strings.core/botadmins_run")
+	@CommandDoc("tr:CoreStrings/botadmins_run")
 	public Mono<Void> run(Context ctx) {
 		return ctx.bot().service(DatabaseService.class)
 				.withExtension(BotAdminDao.class, BotAdminDao::getAll)
@@ -37,10 +37,10 @@ class BotAdminsCommand {
 				.map(User::getTag)
 				.collectSortedList(String.CASE_INSENSITIVE_ORDER)
 				.map(adminList -> {
-					var sb = new StringBuilder("__**" + ctx.translate("strings.core", "list") + ":**__\n\n");
+					var sb = new StringBuilder("__**" + ctx.translate("CoreStrings", "list") + ":**__\n\n");
 					adminList.forEach(admin -> sb.append(admin).append("\n"));
 					if (adminList.isEmpty()) {
-						sb.append("*(" + ctx.translate("strings.core", "no_data") + ")*\n");
+						sb.append("*(" + ctx.translate("CoreStrings", "no_data") + ")*\n");
 					}
 					return sb.toString().substring(0, Math.min(sb.toString().length(), 800));
 				})
@@ -49,26 +49,26 @@ class BotAdminsCommand {
 	}
 	
 	@CommandAction("grant")
-	@CommandDoc("tr:strings.core/botadmins_run_grant")
+	@CommandDoc("tr:CoreStrings/botadmins_run_grant")
 	public Mono<Void> runGrant(Context ctx, User user) {
 		return ctx.bot().service(DatabaseService.class)
 				.withExtension(BotAdminDao.class, dao -> dao.insertIfNotExists(user.getId().asLong()))
 				.filter(isEqual(true))
-				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("strings.core", "error_already_admin"))))
-				.then(ctx.reply(ctx.translate("strings.core", "admin_grant_success", user.getTag()))
-						.and(ctx.bot().log(ctx.bot().translate("strings.core", "admin_grant_log") + ": **" 
+				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("CoreStrings", "error_already_admin"))))
+				.then(ctx.reply(ctx.translate("CoreStrings", "admin_grant_success", user.getTag()))
+						.and(ctx.bot().log(ctx.bot().translate("CoreStrings", "admin_grant_log") + ": **" 
 								+ user.getTag() + "** (" + user.getId().asString() + ")")));
 	}
 	
 	@CommandAction("revoke")
-	@CommandDoc("tr:strings.core/botadmins_run_revoke")
+	@CommandDoc("tr:CoreStrings/botadmins_run_revoke")
 	public Mono<Void> runRevoke(Context ctx, User user) {
 		return ctx.bot().service(DatabaseService.class)
 				.withExtension(BotAdminDao.class, dao -> dao.delete(user.getId().asLong()))
 				.filter(isEqual(true))
-				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("strings.core", "error_already_not_admin"))))
-				.then(ctx.reply(ctx.translate("strings.core", "admin_revoke_success", user.getTag()))
-						.and(ctx.bot().log(ctx.bot().translate("strings.core", "admin_revoke_log") + ": **" 
+				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("CoreStrings", "error_already_not_admin"))))
+				.then(ctx.reply(ctx.translate("CoreStrings", "admin_revoke_success", user.getTag()))
+						.and(ctx.bot().log(ctx.bot().translate("CoreStrings", "admin_revoke_log") + ": **" 
 								+ user.getTag() + "** (" + user.getId().asString() + ")")));
 	}
 }

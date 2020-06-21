@@ -17,32 +17,32 @@ import reactor.core.publisher.Mono;
 
 @CommandDescriptor(
 		aliases = "blacklist",
-		shortDescription = "tr:strings.core/blacklist_desc"
+		shortDescription = "tr:CoreStrings/blacklist_desc"
 )
 @CommandPermission(level = PermissionLevel.BOT_OWNER)
 class BlacklistCommand {
 
 	@CommandAction("add")
-	@CommandDoc("tr:strings.core/blacklist_run_add")
+	@CommandDoc("tr:CoreStrings/blacklist_run_add")
 	public Mono<Void> runAdd(Context ctx, long id) {
 		return ctx.bot().service(DatabaseService.class)
 				.withExtension(BlacklistedIdDao.class, dao -> dao.insertIfNotExists(id))
 				.filter(isEqual(true))
-				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("strings.core", "error_already_blacklisted"))))
+				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("CoreStrings", "error_already_blacklisted"))))
 				.then(Mono.fromRunnable(() -> ctx.bot().service(CommandService.class).blacklist(id)))
-				.then(ctx.reply(ctx.translate("strings.core", "blacklist_success", id))
-						.and(ctx.bot().log(ctx.bot().translate("strings.core", "blacklist_log") + ": " + id)));
+				.then(ctx.reply(ctx.translate("CoreStrings", "blacklist_success", id))
+						.and(ctx.bot().log(ctx.bot().translate("CoreStrings", "blacklist_log") + ": " + id)));
 	}
 
 	@CommandAction("remove")
-	@CommandDoc("tr:strings.core/blacklist_run_remove")
+	@CommandDoc("tr:CoreStrings/blacklist_run_remove")
 	public Mono<Void> runRemove(Context ctx, long id) {
 		return ctx.bot().service(DatabaseService.class)
 				.withExtension(BlacklistedIdDao.class, dao -> dao.delete(id))
 				.filter(isEqual(true))
-				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("strings.core", "error_already_not_blacklisted"))))
+				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("CoreStrings", "error_already_not_blacklisted"))))
 				.then(Mono.fromRunnable(() -> ctx.bot().service(CommandService.class).unblacklist(id)))
-				.then(ctx.reply(ctx.translate("strings.core", "unblacklist_success", id))
-						.and(ctx.bot().log(ctx.bot().translate("strings.core", "unblacklist_log") + ": " + id)));
+				.then(ctx.reply(ctx.translate("CoreStrings", "unblacklist_success", id))
+						.and(ctx.bot().log(ctx.bot().translate("CoreStrings", "unblacklist_log") + ": " + id)));
 	}
 }
