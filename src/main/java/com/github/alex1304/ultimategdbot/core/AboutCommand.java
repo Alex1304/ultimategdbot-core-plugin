@@ -23,7 +23,7 @@ import reactor.core.scheduler.Schedulers;
 
 @CommandDescriptor(
 		aliases = "about",
-		shortDescription = "tr:strings_core/about_desc"
+		shortDescription = "tr:strings.core/about_desc"
 )
 class AboutCommand {
 
@@ -36,7 +36,7 @@ class AboutCommand {
 	}
 
 	@CommandAction
-	@CommandDoc("tr:strings_core/about_run")
+	@CommandDoc("tr:strings.core/about_run")
 	public Mono<Void> run(Context ctx) {
 		return Mono.zip(D4J_PROPS.map(PropertyReader::fromProperties).transform(props -> version(ctx, props)),
 						VersionUtils.getGitProperties(API_GIT_RESOURCE).transform(props -> version(ctx, props)),
@@ -46,11 +46,11 @@ class AboutCommand {
 						ctx.bot().gateway().getUsers().count())
 				.flatMap(function((d4jVersion, apiVersion, botOwner, self, guildCount, userCount) -> {
 					var versionInfoBuilder = new StringBuilder("**")
-							.append(ctx.translate("strings_core", "ugdb_api_version"))
+							.append(ctx.translate("strings.core", "ugdb_api_version"))
 							.append("** ");
 					versionInfoBuilder.append(apiVersion).append("\n");
 					versionInfoBuilder.append("**");
-					versionInfoBuilder.append(ctx.translate("strings_core", "d4j_version"));
+					versionInfoBuilder.append(ctx.translate("strings.core", "d4j_version"));
 					versionInfoBuilder.append("** ")
 							.append(d4jVersion)
 							.append("\n");
@@ -65,22 +65,22 @@ class AboutCommand {
 						versionInfoBuilder.append("**")
 								.append(pluginMetadata.getName())
 								.append(' ')
-								.append(ctx.translate("strings_core", "plugin"))
+								.append(ctx.translate("strings.core", "plugin"))
 								.append("**\n")
 								.append("> **")
-								.append(ctx.translate("strings_core", "version"))
+								.append(ctx.translate("strings.core", "version"))
 								.append("** ")
-								.append(pluginMetadata.getVersion().orElse("*" + ctx.translate("strings_core", "unknown") + "*"))
+								.append(pluginMetadata.getVersion().orElse("*" + ctx.translate("strings.core", "unknown") + "*"))
 								.append(pluginMetadata.getDescription()
-										.map(s -> "\n> **" + ctx.translate("strings_core", "description") + "** " + s)
+										.map(s -> "\n> **" + ctx.translate("strings.core", "description") + "** " + s)
 										.orElse(""));
 						if (!pluginMetadata.getDevelopers().isEmpty()) {
 							versionInfoBuilder.append(pluginMetadata.getDevelopers().stream()
-									.collect(Collectors.joining(", ", "\n> **" + ctx.translate("strings_core", "developers") + "** ", "")));
+									.collect(Collectors.joining(", ", "\n> **" + ctx.translate("strings.core", "developers") + "** ", "")));
 						}
 						versionInfoBuilder
 								.append(pluginMetadata.getUrl()
-										.map(s -> "\n> **" + ctx.translate("strings_core", "url") + "** <" + s + ">")
+										.map(s -> "\n> **" + ctx.translate("strings.core", "url") + "** <" + s + ">")
 										.orElse(""))
 								.append('\n');
 					}
@@ -106,7 +106,7 @@ class AboutCommand {
 	
 	private static Mono<String> version(Translator tr, Mono<PropertyReader> props) {
 		return props.map(p -> p.readOptional(GitProperties.APPLICATION_VERSION)
-						.orElse("*" + tr.translate("strings_core", "unknown") + "*"))
-				.defaultIfEmpty("*" + tr.translate("strings_core", "unknown") + "*");
+						.orElse("*" + tr.translate("strings.core", "unknown") + "*"))
+				.defaultIfEmpty("*" + tr.translate("strings.core", "unknown") + "*");
 	}
 }

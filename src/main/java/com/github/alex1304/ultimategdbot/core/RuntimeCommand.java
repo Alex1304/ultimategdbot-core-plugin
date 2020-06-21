@@ -19,12 +19,12 @@ import reactor.core.publisher.Mono;
 
 @CommandDescriptor(
 		aliases = "runtime",
-		shortDescription = "tr:strings_core/runtime_desc"
+		shortDescription = "tr:strings.core/runtime_desc"
 )
 class RuntimeCommand {
 
 	@CommandAction
-	@CommandDoc("tr:strings_core/runtime_run")
+	@CommandDoc("tr:strings.core/runtime_run")
 	public Mono<Void> run(Context ctx) {
 		return ctx.channel().typeUntil(
 				Mono.zip(objArray -> Flux.fromArray(objArray).cast(EmbedField.class).collectList(),
@@ -41,8 +41,8 @@ class RuntimeCommand {
 	}
 
 	private static Mono<EmbedField> uptime(Translator tr) {
-		return Mono.just(new EmbedField(tr.translate("strings_core", "uptime"),
-				tr.translate("strings_core", "uptime_value", DurationUtils.format(
+		return Mono.just(new EmbedField(tr.translate("strings.core", "uptime"),
+				tr.translate("strings.core", "uptime_value", DurationUtils.format(
 						Duration.ofMillis(ManagementFactory.getRuntimeMXBean().getUptime()).withNanos(0)))));
 	}
 	
@@ -53,38 +53,38 @@ class RuntimeCommand {
 					var max = memStats.maxMemory;
 					var used = memStats.usedMemory;
 					var sb = new StringBuilder();
-					sb.append(ctx.translate("strings_core", "max_ram")).append(' ').append(SystemUnit.format(max)).append("\n");
-					sb.append(ctx.translate("strings_core", "jvm_size")).append(' ').append(SystemUnit.format(total))
+					sb.append(ctx.translate("strings.core", "max_ram")).append(' ').append(SystemUnit.format(max)).append("\n");
+					sb.append(ctx.translate("strings.core", "jvm_size")).append(' ').append(SystemUnit.format(total))
 							.append(" (").append(String.format("%.2f", total * 100 / (double) max)).append("%)\n");
-					sb.append(ctx.translate("strings_core", "gc_run")).append(' ')
+					sb.append(ctx.translate("strings.core", "gc_run")).append(' ')
 							.append(memStats.elapsedSinceLastGC()
-									.map(t -> ctx.translate("strings_common", "ago", DurationUtils.format(t)))
+									.map(t -> ctx.translate("strings.common", "ago", DurationUtils.format(t)))
 									.orElse("Never"))
 							.append("\n");
-					sb.append(ctx.translate("strings_core", "ram_after_gc")).append(' ').append(SystemUnit.format(used))
+					sb.append(ctx.translate("strings.core", "ram_after_gc")).append(' ').append(SystemUnit.format(used))
 							.append(" (").append(String.format("%.2f", used * 100 / (double) max)).append("%)\n");
-					return new EmbedField(ctx.translate("strings_core", "memory_usage"), sb.toString());
+					return new EmbedField(ctx.translate("strings.core", "memory_usage"), sb.toString());
 				});
 	}
 	
 	private static Mono<EmbedField> shardInfo(Context ctx) {
 		var shardInfo = ctx.event().getShardInfo();
-		return Mono.just(new EmbedField(ctx.translate("strings_core", "gateway_sharding_info"),
-				ctx.translate("strings_core", "shard_index", shardInfo.getIndex()) + '\n'
-				+ ctx.translate("strings_core", "shard_count", shardInfo.getCount())));
+		return Mono.just(new EmbedField(ctx.translate("strings.core", "gateway_sharding_info"),
+				ctx.translate("strings.core", "shard_index", shardInfo.getIndex()) + '\n'
+				+ ctx.translate("strings.core", "shard_count", shardInfo.getCount())));
 	}
 	
 	private static Mono<EmbedField> cacheInfo(Context ctx) {
 		final String[] storeNames = {
-				ctx.translate("strings_core", "channels"),
-				ctx.translate("strings_core", "emojis"),
-				ctx.translate("strings_core", "guilds"),
-				ctx.translate("strings_core", "messages"),
-				ctx.translate("strings_core", "members"),
-				ctx.translate("strings_core", "presences"),
-				ctx.translate("strings_core", "roles"),
-				ctx.translate("strings_core", "users"),
-				ctx.translate("strings_core", "voice_states")
+				ctx.translate("strings.core", "channels"),
+				ctx.translate("strings.core", "emojis"),
+				ctx.translate("strings.core", "guilds"),
+				ctx.translate("strings.core", "messages"),
+				ctx.translate("strings.core", "members"),
+				ctx.translate("strings.core", "presences"),
+				ctx.translate("strings.core", "roles"),
+				ctx.translate("strings.core", "users"),
+				ctx.translate("strings.core", "voice_states")
 		};
 		var stateView = ctx.bot().gateway().getGatewayResources().getStateView();
 		return Mono.zip(
@@ -107,7 +107,7 @@ class RuntimeCommand {
 				}
 				return sb.toString();
 			})
-			.map(content -> new EmbedField(ctx.translate("strings_core", "cache_usage"), content));
+			.map(content -> new EmbedField(ctx.translate("strings.core", "cache_usage"), content));
 	}
 	
 	private static class EmbedField {

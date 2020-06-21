@@ -52,14 +52,14 @@ import reactor.util.function.Tuples;
 
 @CommandDescriptor(
 	aliases = { "setup", "settings", "configure", "config" },
-	shortDescription = "tr:strings_core/setup_desc",
+	shortDescription = "tr:strings.core/setup_desc",
 	scope = Scope.GUILD_ONLY
 )
 @CommandPermission(level = PermissionLevel.GUILD_ADMIN)
 class SetupCommand {
 
 	@CommandAction
-	@CommandDoc("tr:strings_core/setup_run")
+	@CommandDoc("tr:strings.core/setup_run")
 	public Mono<Void> run(Context ctx) {
 		return ctx.bot().service(DatabaseService.class)
 				.configureGuild(ctx, ctx.event().getGuildId().orElseThrow())
@@ -80,7 +80,7 @@ class SetupCommand {
 						formattedConfigs.add(Flux.concat(formattedEntries)
 								.collect(joining("\n")));
 					}
-					formattedConfigs.add(Mono.just(ctx.translate("strings_core", "react")));
+					formattedConfigs.add(Mono.just(ctx.translate("strings.core", "react")));
 					return Flux.concat(formattedConfigs)
 							.collect(joining("\n\n"))
 							.map(content -> Tuples.of(configurators, content, formattedValuePerEntry));
@@ -107,9 +107,9 @@ class SetupCommand {
 			Map<ConfigEntry<?>, String> formattedValuePerEntry, boolean reset) {
 		var sb = new StringBuilder("**");
 		if (reset) {
-			sb.append(ctx.translate("strings_core", "prompt_feature_reset"));
+			sb.append(ctx.translate("strings.core", "prompt_feature_reset"));
 		} else {
-			sb.append(ctx.translate("strings_core", "prompt_feature_setup"));
+			sb.append(ctx.translate("strings.core", "prompt_feature_setup"));
 		}
 		sb.append("**\n\n");
 		var i = 1;
@@ -129,19 +129,19 @@ class SetupCommand {
 					try {
 						selected = Integer.parseInt(selectInteraction.getArgs().get(0));
 					} catch (NumberFormatException e) {
-						return Mono.error(new UnexpectedReplyException(ctx.translate("strings_core", "error_invalid_input")));
+						return Mono.error(new UnexpectedReplyException(ctx.translate("strings.core", "error_invalid_input")));
 					}
 					if (selected < 1 || selected > configurators.size()) {
-						return Mono.error(new UnexpectedReplyException(ctx.translate("strings_core", "error_invalid_input", selected)));
+						return Mono.error(new UnexpectedReplyException(ctx.translate("strings.core", "error_invalid_input", selected)));
 					}
 					selectInteraction.closeMenu();
 					var configurator = configurators.get(selected - 1);
 					if (reset) {
 						return ctx.bot().service(InteractiveMenuService.class)
-								.create(Markdown.bold(ctx.translate("strings_core", "reset_confirm", configurator.getName())))
+								.create(Markdown.bold(ctx.translate("strings.core", "reset_confirm", configurator.getName())))
 								.addReactionItem("✅", interaction -> {
 									return configurator.resetConfig(ctx.bot().service(DatabaseService.class))
-											.then(ctx.reply("✅ " + ctx.translate("strings_core", "reset_success")))
+											.then(ctx.reply("✅ " + ctx.translate("strings.core", "reset_success")))
 											.then();
 								})
 								.addReactionItem(ctx.bot().service(InteractiveMenuService.class)
@@ -162,7 +162,7 @@ class SetupCommand {
 				.filter(not(ConfigEntry::isReadOnly))
 				.collect(toUnmodifiableList());
 		if (entries.isEmpty()) {
-			return Mono.error(new CommandFailedException(ctx.translate("strings_core", "error_nothing_to_configure")));
+			return Mono.error(new CommandFailedException(ctx.translate("strings.core", "error_nothing_to_configure")));
 		}
 		var entryQueue = new ArrayDeque<>(entries);
 		var firstEntry = entryQueue.element();
@@ -177,12 +177,12 @@ class SetupCommand {
 										interaction.getMenuMessage(), interaction::closeMenu)))
 						.addReactionItem("✅", interaction -> endConfiguration(configurator, ctx, interaction::closeMenu))
 						.addReactionItem("🚫", __ -> Mono.error(new CommandFailedException(
-								ctx.translate("strings_core", "error_configuration_cancelled"))))
+								ctx.translate("strings.core", "error_configuration_cancelled"))))
 						.addMessageItem("", interaction -> {
 							var input = interaction.getEvent().getMessage().getContent();
 							var currentEntry = entryQueue.element();
 							var editEntry = currentEntry.accept(new EditVisitor(ctx, input)).onErrorMap(ValidationException.class,
-									e -> new UnexpectedReplyException(ctx.translate("strings_core", "error_constraint_violation")
+									e -> new UnexpectedReplyException(ctx.translate("strings.core", "error_constraint_violation")
 											+ ' ' + e.getMessage()));
 							return editEntry.then(goToNextEntry(ctx, entryQueue, formattedValuePerEntry, configurator,
 									interaction.getMenuMessage(), interaction::closeMenu));
@@ -209,7 +209,7 @@ class SetupCommand {
 	
 	private static Mono<Void> endConfiguration(GuildConfigurator<?> configurator, Context ctx, Runnable menuCloser) {
 		return configurator.saveConfig(ctx.bot().service(DatabaseService.class))
-				.then(ctx.reply(":white_check_mark: " + ctx.translate("strings_core", "configuration_done"))
+				.then(ctx.reply(":white_check_mark: " + ctx.translate("strings.core", "configuration_done"))
 						.and(Mono.fromRunnable(menuCloser)));
 	}
 	
@@ -233,7 +233,7 @@ class SetupCommand {
 	
 		@Override
 		public Mono<String> visit(BooleanConfigEntry entry) {
-			return entry.getValue().map(bool -> tr.translate("strings_common", bool ? "yes" : "no"));
+			return entry.getValue().map(bool -> tr.translate("strings.common", bool ? "yes" : "no"));
 		}
 	
 		@Override
@@ -271,17 +271,17 @@ class SetupCommand {
 
 		@Override
 		public Mono<String> visit(IntegerConfigEntry entry) {
-			return Mono.just(promptSet(entry, tr.translate("strings_core", "prompt_numeric")));
+			return Mono.just(promptSet(entry, tr.translate("strings.core", "prompt_numeric")));
 		}
 
 		@Override
 		public Mono<String> visit(LongConfigEntry entry) {
-			return Mono.just(promptSet(entry, tr.translate("strings_core", "prompt_numeric")));
+			return Mono.just(promptSet(entry, tr.translate("strings.core", "prompt_numeric")));
 		}
 
 		@Override
 		public Mono<String> visit(BooleanConfigEntry entry) {
-			return Mono.just(promptSet(entry, tr.translate("strings_core", "prompt_boolean")));
+			return Mono.just(promptSet(entry, tr.translate("strings.core", "prompt_boolean")));
 		}
 
 		@Override
@@ -291,25 +291,25 @@ class SetupCommand {
 
 		@Override
 		public Mono<String> visit(GuildChannelConfigEntry entry) {
-			return Mono.just(promptSet(entry, tr.translate("strings_core", "prompt_channel")));
+			return Mono.just(promptSet(entry, tr.translate("strings.core", "prompt_channel")));
 		}
 
 		@Override
 		public Mono<String> visit(GuildRoleConfigEntry entry) {
-			return Mono.just(promptSet(entry, tr.translate("strings_core", "prompt_channel")));
+			return Mono.just(promptSet(entry, tr.translate("strings.core", "prompt_channel")));
 		}
 
 		@Override
 		public Mono<String> visit(GuildMemberConfigEntry entry) {
-			return Mono.just(promptSet(entry, tr.translate("strings_core", "prompt_member")));
+			return Mono.just(promptSet(entry, tr.translate("strings.core", "prompt_member")));
 		}
 		
 		private String promptSet(ConfigEntry<?> entry, String expecting) {
 			return Markdown.bold(entry.getDisplayName()) + " (" + configurator.getName() + ")\n\n"
 					+ (entry.getDescription().isEmpty() ? "" : entry.getDescription() + "\n\n")
-					+ Markdown.bold(tr.translate("strings_core", "current_value")) + ' ' + currentValue + '\n'
-					+ tr.translate("strings_core", "react_entry") + '\n'
-					+ Markdown.bold(tr.translate("strings_core", "prompt_new_value")
+					+ Markdown.bold(tr.translate("strings.core", "current_value")) + ' ' + currentValue + '\n'
+					+ tr.translate("strings.core", "react_entry") + '\n'
+					+ Markdown.bold(tr.translate("strings.core", "prompt_new_value")
 							+ (expecting == null ? "" : " (" + expecting + ")") + ':') + '\n';
 		}
 	}
@@ -330,7 +330,7 @@ class SetupCommand {
 			try {
 				value = Integer.parseInt(input);
 			} catch (NumberFormatException e) {
-				return Mono.error(new UnexpectedReplyException(context.translate("strings_core", "error_invalid_input")));
+				return Mono.error(new UnexpectedReplyException(context.translate("strings.core", "error_invalid_input")));
 			}
 			return entry.setValue(value);
 		}
@@ -341,7 +341,7 @@ class SetupCommand {
 			try {
 				value = Long.parseLong(input);
 			} catch (NumberFormatException e) {
-				return Mono.error(new UnexpectedReplyException(context.translate("strings_core", "error_invalid_input")));
+				return Mono.error(new UnexpectedReplyException(context.translate("strings.core", "error_invalid_input")));
 			}
 			return entry.setValue(value);
 		}
@@ -350,12 +350,12 @@ class SetupCommand {
 		public Mono<Void> visit(BooleanConfigEntry entry) {
 			var collator = Collator.getInstance(context.getLocale());
 			collator.setStrength(SECONDARY);
-			var yes = context.translate("strings_common", "yes");
-			var no = context.translate("strings_common", "no");
+			var yes = context.translate("strings.common", "yes");
+			var no = context.translate("strings.common", "no");
 			var isYes = collator.compare(input, yes) == 0;
 			var isNo = collator.compare(input, no) == 0;
 			if (!isYes && !isNo) {
-				return Mono.error(new UnexpectedReplyException(context.translate("strings_core", "error_expected_boolean")));
+				return Mono.error(new UnexpectedReplyException(context.translate("strings.core", "error_expected_boolean")));
 			}
 			return entry.setValue(isYes);
 		}
