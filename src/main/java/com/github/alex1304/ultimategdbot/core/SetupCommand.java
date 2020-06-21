@@ -80,7 +80,7 @@ class SetupCommand {
 						formattedConfigs.add(Flux.concat(formattedEntries)
 								.collect(joining("\n")));
 					}
-					formattedConfigs.add(Mono.just(ctx.translate("CoreStrings", "react")));
+					formattedConfigs.add(Mono.just(ctx.translate("CoreStrings", "react", "\uD83D\uDCDD", "\uD83D\uDD04")));
 					return Flux.concat(formattedConfigs)
 							.collect(joining("\n\n"))
 							.map(content -> Tuples.of(configurators, content, formattedValuePerEntry));
@@ -308,7 +308,7 @@ class SetupCommand {
 			return Markdown.bold(entry.getDisplayName()) + " (" + configurator.getName() + ")\n\n"
 					+ (entry.getDescription().isEmpty() ? "" : entry.getDescription() + "\n\n")
 					+ Markdown.bold(tr.translate("CoreStrings", "current_value")) + ' ' + currentValue + '\n'
-					+ tr.translate("CoreStrings", "react_entry") + '\n'
+					+ tr.translate("CoreStrings", "react_entry", "\u23ED\uFE0F", "\uD83D\uDD04", "\u2705", "\uD83D\uDEAB") + '\n'
 					+ Markdown.bold(tr.translate("CoreStrings", "prompt_new_value")
 							+ (expecting == null ? "" : " (" + expecting + ")") + ':') + '\n';
 		}
