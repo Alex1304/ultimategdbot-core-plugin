@@ -25,7 +25,7 @@ import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDescriptor
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDoc;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandPermission;
 import com.github.alex1304.ultimategdbot.api.command.menu.InteractiveMenuService;
-import com.github.alex1304.ultimategdbot.api.command.menu.PageNumberOutOfRangeException;
+import com.github.alex1304.ultimategdbot.api.command.menu.MessageMenuInteraction;
 import com.github.alex1304.ultimategdbot.api.command.menu.UnexpectedReplyException;
 import com.github.alex1304.ultimategdbot.api.database.DatabaseService;
 import com.github.alex1304.ultimategdbot.api.database.guildconfig.BooleanConfigEntry;
@@ -42,7 +42,6 @@ import com.github.alex1304.ultimategdbot.api.database.guildconfig.ValidationExce
 import com.github.alex1304.ultimategdbot.api.util.DiscordFormatter;
 import com.github.alex1304.ultimategdbot.api.util.DiscordParser;
 import com.github.alex1304.ultimategdbot.api.util.Markdown;
-import com.github.alex1304.ultimategdbot.api.util.MessageSpecTemplate;
 
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
@@ -70,8 +69,7 @@ class SetupCommand {
 					var formattedValuePerEntry = new HashMap<ConfigEntry<?>, String>();
 					for (var configurator : configurators) {
 						var formattedEntries = new ArrayList<Mono<String>>();
-						formattedEntries.add(Mono.just(bold(underline(configurator.getName())) + '\n'
-								+ configurator.getDescription()));
+						formattedEntries.add(Mono.just(bold(underline(configurator.getName()))));
 						for (var entry : configurator.getConfigEntries()) {
 							formattedEntries.add(entry.accept(new DisplayVisitor(ctx))
 									.defaultIfEmpty("none")
@@ -82,39 +80,21 @@ class SetupCommand {
 						formattedConfigs.add(Flux.concat(formattedEntries)
 								.collect(joining("\n")));
 					}
+					formattedConfigs.add(Mono.just(ctx.translate("CoreStrings", "react", "\uD83D\uDCDD", "\uD83D\uDD04")));
 					return Flux.concat(formattedConfigs)
-							.collect(toUnmodifiableList())
+							.collect(joining("\n\n"))
 							.map(content -> Tuples.of(configurators, content, formattedValuePerEntry));
 				})
 				.flatMap(TupleUtils.function((configurators, content, formattedValuePerEntry) -> ctx.bot()
 						.service(InteractiveMenuService.class)
-						.createPaginated((tr, page) -> {
-							PageNumberOutOfRangeException.check(page, 0, content.size() - 1);
-							return new MessageSpecTemplate(content.get(page), embed -> embed.addField(
-									tr.translate("CommonStrings", "pagination_page_counter", page + 1, content.size()),
-									tr.translate("CommonStrings", "pagination_go_to") + '\n'
-									+ tr.translate("CoreStrings", "react", "\uD83D\uDCDD", "\uD83D\uDD04"), true));
-						})
+						.createPaginated(content, 1000)
 						.addReactionItem("📝", editInteraction -> {
 							editInteraction.closeMenu();
-							return handleSelectedFeatureInteraction(ctx, configurators.get(editInteraction.get("currentPage")),
-									formattedValuePerEntry);
+							return handleEditInteraction(ctx, configurators, formattedValuePerEntry, false);
 						})
 						.addReactionItem("🔄", resetInteraction -> {
 							resetInteraction.closeMenu();
-							var configurator = configurators.get(resetInteraction.get("currentPage"));
-							return ctx.bot().service(InteractiveMenuService.class)
-									.create(Markdown.bold(ctx.translate("CoreStrings", "reset_confirm", configurator.getName())))
-									.addReactionItem("✅", interaction -> {
-										return configurator.resetConfig(ctx.bot().service(DatabaseService.class))
-												.then(ctx.reply("✅ " + ctx.translate("CoreStrings", "reset_success")))
-												.then();
-									})
-									.addReactionItem(ctx.bot().service(InteractiveMenuService.class)
-											.getPaginationControls()
-											.getCloseEmoji(), interaction -> Mono.fromRunnable(interaction::closeMenu))
-									.deleteMenuOnClose(true)
-									.open(ctx);
+							return handleEditInteraction(ctx, configurators, formattedValuePerEntry, true);
 						})
 						.addReactionItem(ctx.bot().service(InteractiveMenuService.class)
 								.getPaginationControls()
@@ -167,16 +147,16 @@ class SetupCommand {
 								.addReactionItem(ctx.bot().service(InteractiveMenuService.class)
 										.getPaginationControls()
 										.getCloseEmoji(), interaction -> Mono.fromRunnable(interaction::closeMenu))
-								.open(ctx);
+								.open(ctx); 
 					}
-					return handleSelectedFeatureInteraction(ctx, configurator, formattedValuePerEntry);
+					return handleSelectedFeatureInteraction(ctx, selectInteraction, configurator, formattedValuePerEntry);
 				})
 				.deleteMenuOnClose(true)
 				.deleteMenuOnTimeout(true)
 				.open(ctx);
 	}
 	
-	private static Mono<Void> handleSelectedFeatureInteraction(Context ctx,
+	private static Mono<Void> handleSelectedFeatureInteraction(Context ctx, MessageMenuInteraction selectInteraction,
 			GuildConfigurator<?> configurator, Map<ConfigEntry<?>, String> formattedValuePerEntry) {
 		var entries = configurator.getConfigEntries().stream()
 				.filter(not(ConfigEntry::isReadOnly))
@@ -185,17 +165,16 @@ class SetupCommand {
 			return Mono.error(new CommandFailedException(ctx.translate("CoreStrings", "error_nothing_to_configure")));
 		}
 		var entryQueue = new ArrayDeque<>(entries);
-		var totalPages = entryQueue.size();
 		var firstEntry = entryQueue.element();
 		var valueOfFirstEntry = formattedValuePerEntry.get(firstEntry);
-		return firstEntry.accept(new PromptVisitor(ctx, valueOfFirstEntry, 1, totalPages))
+		return firstEntry.accept(new PromptVisitor(ctx, configurator, valueOfFirstEntry))
 				.map(ctx.bot().service(InteractiveMenuService.class)::create)
 				.flatMap(menu -> menu
 						.addReactionItem("⏭️", interaction -> goToNextEntry(ctx, entryQueue, formattedValuePerEntry,
-								configurator, interaction.getMenuMessage(), interaction::closeMenu, totalPages))
+								configurator, interaction.getMenuMessage(), interaction::closeMenu))
 						.addReactionItem("🔄", interaction -> entryQueue.element().setValue(null)
 								.then(goToNextEntry(ctx, entryQueue, formattedValuePerEntry, configurator,
-										interaction.getMenuMessage(), interaction::closeMenu, totalPages)))
+										interaction.getMenuMessage(), interaction::closeMenu)))
 						.addReactionItem("✅", interaction -> endConfiguration(configurator, ctx, interaction::closeMenu))
 						.addReactionItem("🚫", __ -> Mono.error(new CommandFailedException(
 								ctx.translate("CoreStrings", "error_configuration_cancelled"))))
@@ -206,7 +185,7 @@ class SetupCommand {
 									e -> new UnexpectedReplyException(ctx.translate("CoreStrings", "error_constraint_violation")
 											+ ' ' + e.getMessage()));
 							return editEntry.then(goToNextEntry(ctx, entryQueue, formattedValuePerEntry, configurator,
-									interaction.getMenuMessage(), interaction::closeMenu, totalPages));
+									interaction.getMenuMessage(), interaction::closeMenu));
 						})
 						.deleteMenuOnClose(true)
 						.deleteMenuOnTimeout(true)
@@ -217,10 +196,9 @@ class SetupCommand {
 
 	private static Mono<Void> goToNextEntry(Context ctx, Queue<ConfigEntry<?>> entryQueue,
 			Map<ConfigEntry<?>, String> formattedValuePerEntry, GuildConfigurator<?> configurator, Message menuMessage,
-			Runnable menuCloser, int totalPages) {
+			Runnable menuCloser) {
 		var goToNextEntry = Mono.fromCallable(entryQueue::element)
-				.flatMap(nextEntry -> nextEntry.accept(new PromptVisitor(ctx,
-								formattedValuePerEntry.get(nextEntry), totalPages - entryQueue.size() + 1, totalPages))
+				.flatMap(nextEntry -> nextEntry.accept(new PromptVisitor(ctx, configurator, formattedValuePerEntry.get(nextEntry)))
 						.flatMap(prompt -> menuMessage.edit(spec -> spec.setContent(prompt))))
 				.then();
 		return Mono.fromRunnable(entryQueue::remove)
@@ -282,55 +260,52 @@ class SetupCommand {
 	private static class PromptVisitor implements ConfigEntryVisitor<String> {
 
 		private final Translator tr;
+		private final GuildConfigurator<?> configurator;
 		private final String currentValue;
-		private final int currentPage;
-		private final int totalPages;
 		
-		private PromptVisitor(Translator tr,String currentValue, int currentPage, int totalPages) {
+		private PromptVisitor(Translator tr, GuildConfigurator<?> configurator, String currentValue) {
 			this.tr = tr;
+			this.configurator = configurator;
 			this.currentValue = currentValue;
-			this.currentPage = currentPage;
-			this.totalPages = totalPages;
 		}
 
 		@Override
 		public Mono<String> visit(IntegerConfigEntry entry) {
-			return Mono.just(prompt(entry, tr.translate("CoreStrings", "prompt_numeric")));
+			return Mono.just(promptSet(entry, tr.translate("CoreStrings", "prompt_numeric")));
 		}
 
 		@Override
 		public Mono<String> visit(LongConfigEntry entry) {
-			return Mono.just(prompt(entry, tr.translate("CoreStrings", "prompt_numeric")));
+			return Mono.just(promptSet(entry, tr.translate("CoreStrings", "prompt_numeric")));
 		}
 
 		@Override
 		public Mono<String> visit(BooleanConfigEntry entry) {
-			return Mono.just(prompt(entry, tr.translate("CoreStrings", "prompt_boolean")));
+			return Mono.just(promptSet(entry, tr.translate("CoreStrings", "prompt_boolean")));
 		}
 
 		@Override
 		public Mono<String> visit(StringConfigEntry entry) {
-			return Mono.just(prompt(entry, null));
+			return Mono.just(promptSet(entry, null));
 		}
 
 		@Override
 		public Mono<String> visit(GuildChannelConfigEntry entry) {
-			return Mono.just(prompt(entry, tr.translate("CoreStrings", "prompt_channel")));
+			return Mono.just(promptSet(entry, tr.translate("CoreStrings", "prompt_channel")));
 		}
 
 		@Override
 		public Mono<String> visit(GuildRoleConfigEntry entry) {
-			return Mono.just(prompt(entry, tr.translate("CoreStrings", "prompt_channel")));
+			return Mono.just(promptSet(entry, tr.translate("CoreStrings", "prompt_channel")));
 		}
 
 		@Override
 		public Mono<String> visit(GuildMemberConfigEntry entry) {
-			return Mono.just(prompt(entry, tr.translate("CoreStrings", "prompt_member")));
+			return Mono.just(promptSet(entry, tr.translate("CoreStrings", "prompt_member")));
 		}
 		
-		private String prompt(ConfigEntry<?> entry, String expecting) {
-			return "───────────────────────\n"
-					+ Markdown.bold(entry.getDisplayName()) + " (" + currentPage + '/' + totalPages + ")\n\n"
+		private String promptSet(ConfigEntry<?> entry, String expecting) {
+			return Markdown.bold(entry.getDisplayName()) + " (" + configurator.getName() + ")\n\n"
 					+ (entry.getDescription().isEmpty() ? "" : entry.getDescription() + "\n\n")
 					+ Markdown.bold(tr.translate("CoreStrings", "current_value")) + ' ' + currentValue + '\n'
 					+ tr.translate("CoreStrings", "react_entry", "\u23ED\uFE0F", "\uD83D\uDD04", "\u2705", "\uD83D\uDEAB") + '\n'
