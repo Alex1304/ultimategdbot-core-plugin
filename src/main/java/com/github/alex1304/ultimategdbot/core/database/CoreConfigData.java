@@ -66,7 +66,7 @@ public interface CoreConfigData extends GuildConfigData<CoreConfigData> {
 					if (bot.hasService(LocalizationService.class)) {
 						bot.service(LocalizationService.class)
 								.setLocaleForGuild(data.guildId().asLong(),
-										Locale.forLanguageTag(data.locale().orElse(null)));
+										data.locale().map(Locale::forLanguageTag).orElse(null));
 					}
 				})
 				.build();
