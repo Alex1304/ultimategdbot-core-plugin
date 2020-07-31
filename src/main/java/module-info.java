@@ -1,5 +1,7 @@
 import com.github.alex1304.ultimategdbot.api.Plugin;
+import com.github.alex1304.ultimategdbot.api.ServiceDeclarator;
 import com.github.alex1304.ultimategdbot.core.CorePlugin;
+import com.github.alex1304.ultimategdbot.core.CoreServices;
 
 module ultimategdbot.core {
 	opens com.github.alex1304.ultimategdbot.core;
@@ -17,4 +19,5 @@ module ultimategdbot.core {
 	requires static org.immutables.value;
 
 	provides Plugin with CorePlugin;
+	provides ServiceDeclarator with CoreServices;
 }

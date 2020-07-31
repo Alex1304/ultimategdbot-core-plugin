@@ -13,11 +13,11 @@ import reactor.core.publisher.Mono;
 		shortDescription = "tr:CoreStrings/logout_desc"
 )
 @CommandPermission(level = PermissionLevel.BOT_OWNER)
-class LogoutCommand {
+public class LogoutCommand extends CoreCommand {
 	
 	@CommandAction
 	public Mono<Void> run(Context ctx) {
 		return ctx.reply(ctx.translate("CoreStrings", "disconnecting"))
-				.then(ctx.bot().gateway().logout());
+				.then(ctx.event().getClient().logout());
 	}
 }

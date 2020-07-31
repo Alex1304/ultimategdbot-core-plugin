@@ -15,8 +15,6 @@ import com.github.alex1304.ultimategdbot.api.command.annotated.CommandAction;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDescriptor;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDoc;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandPermission;
-import com.github.alex1304.ultimategdbot.api.command.menu.InteractiveMenuService;
-import com.github.alex1304.ultimategdbot.api.database.DatabaseService;
 import com.github.alex1304.ultimategdbot.core.database.CoreConfigDao;
 
 import discord4j.core.object.entity.Attachment;
@@ -39,7 +37,7 @@ import reactor.util.retry.Retry;
 		shortDescription = "tr:CoreStrings/changelog_desc"
 )
 @CommandPermission(level = PermissionLevel.BOT_OWNER)
-public class ChangelogCommand {
+public class ChangelogCommand extends CoreCommand {
 
 	private final HttpClient fileClient = HttpClient.create().headers(h -> h.add("Content-Type", "text/plain"));
 	
@@ -55,7 +53,7 @@ public class ChangelogCommand {
 				.filter(l -> !l.startsWith("#"))
 				.collectList()
 				.map(lines -> parse(ctx, ctx.author(), lines))
-				.flatMap(embedData -> ctx.bot().service(InteractiveMenuService.class).create(m -> {
+				.flatMap(embedData -> core.getInteractiveMenuService().create(m -> {
 							m.setContent(ctx.translate("CoreStrings", "confirm"));
 							m.setEmbed(embed -> {
 								embed.setTitle(embedData.title().get());
@@ -65,10 +63,10 @@ public class ChangelogCommand {
 							});
 						})
 						.addReactionItem("success", interaction -> ctx.reply(ctx.translate("CoreStrings", "wait"))
-								.then(ctx.bot().service(DatabaseService.class)
+								.then(core.getDatabaseService()
 										.withExtension(CoreConfigDao.class, CoreConfigDao::getAllChangelogChannels)
 										.flatMapMany(Flux::fromIterable)
-										.map(ctx.bot().rest()::getChannelById)
+										.map(ctx.event().getClient().rest()::getChannelById)
 										.flatMap(channel -> channel.createMessage(ImmutableMessageCreateRequest.builder()
 												.embed(Possible.of(embedData))
 												.build())

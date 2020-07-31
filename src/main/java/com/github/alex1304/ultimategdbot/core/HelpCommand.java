@@ -16,12 +16,10 @@ import com.github.alex1304.ultimategdbot.api.Translator;
 import com.github.alex1304.ultimategdbot.api.command.Command;
 import com.github.alex1304.ultimategdbot.api.command.CommandFailedException;
 import com.github.alex1304.ultimategdbot.api.command.CommandProvider;
-import com.github.alex1304.ultimategdbot.api.command.CommandService;
 import com.github.alex1304.ultimategdbot.api.command.Context;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandAction;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDescriptor;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDoc;
-import com.github.alex1304.ultimategdbot.api.command.menu.InteractiveMenuService;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -32,7 +30,7 @@ import reactor.util.function.Tuples;
 		aliases = { "help", "manual" },
 		shortDescription = "tr:CoreStrings/help_desc"
 )
-class HelpCommand {
+public class HelpCommand extends CoreCommand {
 	
 	@CommandAction
 	@CommandDoc("tr:CoreStrings/help_run")
@@ -40,16 +38,15 @@ class HelpCommand {
 		return command == null ? displayCommandList(ctx) : displayCommandDocumentation(ctx, command.toLowerCase(), subcommand);
 	}
 
-	private static Mono<Void> displayCommandList(Context ctx) {
+	private Mono<Void> displayCommandList(Context ctx) {
 		var sb = new StringBuilder(ctx.translate("CoreStrings", "command_list", ctx.prefixUsed()) + "\n\n");
-		var commandService = ctx.bot().service(CommandService.class);
 		return ctx.event().getMessage().getChannel()
-				.flatMap(channel -> Flux.fromIterable(commandService.getCommandProviders())
+				.flatMap(channel -> Flux.fromIterable(core.getCommandService().getCommandProviders())
 						.sort(comparing(CommandProvider::getName))
 						.concatMap(commandProvider -> Flux.fromIterable(commandProvider.getProvidedCommands())
 								.filter(cmd -> cmd.getScope().isInScope(channel))
-								.filterWhen(cmd -> commandService.getPermissionChecker().isGranted(cmd.getRequiredPermission(), ctx))
-								.filterWhen(cmd -> commandService.getPermissionChecker().isGranted(cmd.getMinimumPermissionLevel(), ctx))
+								.filterWhen(cmd -> core.getCommandService().getPermissionChecker().isGranted(cmd.getRequiredPermission(), ctx))
+								.filterWhen(cmd -> core.getCommandService().getPermissionChecker().isGranted(cmd.getMinimumPermissionLevel(), ctx))
 								.collectSortedList(comparing(HelpCommand::joinAliases))
 								.map(cmdList -> Tuples.of(commandProvider.getName(), cmdList)))
 						.doOnNext(consumer((pluginName, cmdList) -> {
@@ -66,15 +63,15 @@ class HelpCommand {
 									});
 							sb.append('\n');
 						})).then())
-				.then(Mono.defer(() -> ctx.bot().service(InteractiveMenuService.class)
+				.then(Mono.defer(() -> core.getInteractiveMenuService()
 						.createPaginated(sb.toString(), 1990)
 						.open(ctx)));
 	}
 	
-	private static Mono<Void> displayCommandDocumentation(Context ctx, String commandName, String subcommand) {
+	private Mono<Void> displayCommandDocumentation(Context ctx, String commandName, String subcommand) {
 		var selectedSubcommand = subcommand == null ? "" : subcommand.toLowerCase();
 		var command = new AtomicReference<Command>();
-		return Mono.justOrEmpty(ctx.bot().service(CommandService.class).getCommandByAlias(commandName))
+		return Mono.justOrEmpty(core.getCommandService().getCommandByAlias(commandName))
 				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("CoreStrings", "error_command_not_found", commandName))))
 				.doOnNext(command::set)
 				.flatMap(cmd -> findAvailableSubcommands(cmd, ctx).collectList().map(subcommands -> Tuples.of(subcommands, cmd)))
@@ -98,10 +95,10 @@ class HelpCommand {
 						ctx,
 						cmd,
 						ctx.prefixUsed(),
-						ctx.bot().service(CommandService.class).getFlagPrefix(),
+						core.getCommandService().getFlagPrefix(),
 						commandName,
 						selectedSubcommand))
-				.flatMap(doc -> ctx.bot().service(InteractiveMenuService.class)
+				.flatMap(doc -> core.getInteractiveMenuService()
 						.createPaginated(doc, 1200)
 						.open(ctx));
 	}

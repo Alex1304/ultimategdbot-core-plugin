@@ -21,7 +21,7 @@ import reactor.core.publisher.Mono;
 		aliases = "runtime",
 		shortDescription = "tr:CoreStrings/runtime_desc"
 )
-class RuntimeCommand {
+public class RuntimeCommand extends CoreCommand {
 
 	@CommandAction
 	@CommandDoc("tr:CoreStrings/runtime_run")
@@ -86,7 +86,7 @@ class RuntimeCommand {
 				ctx.translate("CoreStrings", "users"),
 				ctx.translate("CoreStrings", "voice_states")
 		};
-		var stateView = ctx.bot().gateway().getGatewayResources().getStateView();
+		var stateView = ctx.event().getClient().getGatewayResources().getStateView();
 		return Mono.zip(
 				objArray -> Arrays.stream(objArray).map(x -> (Long) x).collect(Collectors.toList()),
 				stateView.getChannelStore().count(),

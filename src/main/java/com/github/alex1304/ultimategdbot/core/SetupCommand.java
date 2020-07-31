@@ -23,10 +23,8 @@ import com.github.alex1304.ultimategdbot.api.command.annotated.CommandAction;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDescriptor;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDoc;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandPermission;
-import com.github.alex1304.ultimategdbot.api.command.menu.InteractiveMenuService;
 import com.github.alex1304.ultimategdbot.api.command.menu.PageNumberOutOfRangeException;
 import com.github.alex1304.ultimategdbot.api.command.menu.UnexpectedReplyException;
-import com.github.alex1304.ultimategdbot.api.database.DatabaseService;
 import com.github.alex1304.ultimategdbot.api.database.guildconfig.BooleanConfigEntry;
 import com.github.alex1304.ultimategdbot.api.database.guildconfig.ConfigEntry;
 import com.github.alex1304.ultimategdbot.api.database.guildconfig.ConfigEntryVisitor;
@@ -56,12 +54,12 @@ import reactor.util.function.Tuples;
 	scope = Scope.GUILD_ONLY
 )
 @CommandPermission(level = PermissionLevel.GUILD_ADMIN)
-class SetupCommand {
+public class SetupCommand extends CoreCommand {
 
 	@CommandAction
 	@CommandDoc("tr:CoreStrings/setup_run")
 	public Mono<Void> run(Context ctx) {
-		return ctx.bot().service(DatabaseService.class)
+		return core.getDatabaseService()
 				.configureGuild(ctx, ctx.event().getGuildId().orElseThrow())
 				.collectList()
 				.flatMap(configurators -> {
@@ -85,8 +83,8 @@ class SetupCommand {
 							.collect(toUnmodifiableList())
 							.map(content -> Tuples.of(configurators, content, formattedValuePerEntry));
 				})
-				.flatMap(TupleUtils.function((configurators, content, formattedValuePerEntry) -> ctx.bot()
-						.service(InteractiveMenuService.class)
+				.flatMap(TupleUtils.function((configurators, content, formattedValuePerEntry) -> core
+						.getInteractiveMenuService()
 						.createPaginated((tr, page) -> {
 							PageNumberOutOfRangeException.check(page, 0, content.size() - 1);
 							return new MessageSpecTemplate(content.get(page), embed -> embed.addField(
@@ -102,27 +100,27 @@ class SetupCommand {
 						.addReactionItem("🔄", resetInteraction -> {
 							resetInteraction.closeMenu();
 							var configurator = configurators.get(resetInteraction.get("currentPage"));
-							return ctx.bot().service(InteractiveMenuService.class)
+							return core.getInteractiveMenuService()
 									.create(Markdown.bold(ctx.translate("CoreStrings", "reset_confirm", configurator.getName())))
 									.addReactionItem("✅", interaction -> {
-										return configurator.resetConfig(ctx.bot().service(DatabaseService.class))
+										return configurator.resetConfig(core.getDatabaseService())
 												.then(ctx.reply("✅ " + ctx.translate("CoreStrings", "reset_success")))
 												.then();
 									})
-									.addReactionItem(ctx.bot().service(InteractiveMenuService.class)
+									.addReactionItem(core.getInteractiveMenuService()
 											.getPaginationControls()
 											.getCloseEmoji(), interaction -> Mono.fromRunnable(interaction::closeMenu))
 									.deleteMenuOnClose(true)
 									.open(ctx);
 						})
-						.addReactionItem(ctx.bot().service(InteractiveMenuService.class)
+						.addReactionItem(core.getInteractiveMenuService()
 								.getPaginationControls()
 								.getCloseEmoji(), interaction -> Mono.fromRunnable(interaction::closeMenu))
 						.deleteMenuOnClose(true)
 						.open(ctx)));
 	}
 	
-	private static Mono<Void> handleSelectedFeatureInteraction(Context ctx,
+	private Mono<Void> handleSelectedFeatureInteraction(Context ctx,
 			GuildConfigurator<?> configurator, Map<ConfigEntry<?>, String> formattedValuePerEntry) {
 		var entries = configurator.getConfigEntries().stream()
 				.filter(not(ConfigEntry::isReadOnly))
@@ -135,7 +133,7 @@ class SetupCommand {
 		var firstEntry = entryQueue.element();
 		var valueOfFirstEntry = formattedValuePerEntry.get(firstEntry);
 		return firstEntry.accept(new PromptVisitor(ctx, valueOfFirstEntry, 1, totalPages))
-				.map(ctx.bot().service(InteractiveMenuService.class)::create)
+				.map(core.getInteractiveMenuService()::create)
 				.flatMap(menu -> menu
 						.addReactionItem("⏭️", interaction -> goToNextEntry(ctx, entryQueue, formattedValuePerEntry,
 								configurator, interaction.getMenuMessage(), interaction::closeMenu, totalPages))
@@ -161,7 +159,7 @@ class SetupCommand {
 						.open(ctx));
 	}
 
-	private static Mono<Void> goToNextEntry(Context ctx, Queue<ConfigEntry<?>> entryQueue,
+	private Mono<Void> goToNextEntry(Context ctx, Queue<ConfigEntry<?>> entryQueue,
 			Map<ConfigEntry<?>, String> formattedValuePerEntry, GuildConfigurator<?> configurator, Message menuMessage,
 			Runnable menuCloser, int totalPages) {
 		var goToNextEntry = Mono.fromCallable(entryQueue::element)
@@ -175,8 +173,8 @@ class SetupCommand {
 						: goToNextEntry));
 	}
 	
-	private static Mono<Void> endConfiguration(GuildConfigurator<?> configurator, Context ctx, Runnable menuCloser) {
-		return configurator.saveConfig(ctx.bot().service(DatabaseService.class))
+	private Mono<Void> endConfiguration(GuildConfigurator<?> configurator, Context ctx, Runnable menuCloser) {
+		return configurator.saveConfig(core.getDatabaseService())
 				.then(ctx.reply(":white_check_mark: " + ctx.translate("CoreStrings", "configuration_done"))
 						.and(Mono.fromRunnable(menuCloser)));
 	}
@@ -338,21 +336,21 @@ class SetupCommand {
 
 		@Override
 		public Mono<Void> visit(GuildChannelConfigEntry entry) {
-			return DiscordParser.parseGuildChannel(context, context.bot(), entry.getGuildId(), input)
+			return DiscordParser.parseGuildChannel(context, context.event().getClient(), entry.getGuildId(), input)
 					.flatMap(entry::setValue)
 					.onErrorMap(IllegalArgumentException.class, e -> new UnexpectedReplyException(e.getMessage()));
 		}
 
 		@Override
 		public Mono<Void> visit(GuildRoleConfigEntry entry) {
-			return DiscordParser.parseRole(context, context.bot(), entry.getGuildId(), input)
+			return DiscordParser.parseRole(context, context.event().getClient(), entry.getGuildId(), input)
 					.flatMap(entry::setValue)
 					.onErrorMap(IllegalArgumentException.class, e -> new UnexpectedReplyException(e.getMessage()));
 		}
 
 		@Override
 		public Mono<Void> visit(GuildMemberConfigEntry entry) {
-			return DiscordParser.parseUser(context, context.bot(), input)
+			return DiscordParser.parseUser(context, context.event().getClient(), input)
 					.flatMap(user -> user.asMember(entry.getGuildId()))
 					.flatMap(entry::setValue)
 					.onErrorMap(IllegalArgumentException.class, e -> new UnexpectedReplyException(e.getMessage()));

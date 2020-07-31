@@ -19,7 +19,7 @@ import reactor.core.publisher.Mono;
 		aliases = "ping",
 		shortDescription = "tr:CoreStrings/ping_desc"
 )
-class PingCommand {
+public class PingCommand extends CoreCommand {
 
 	@CommandAction
 	@CommandDoc("tr:CoreStrings/ping_run")
