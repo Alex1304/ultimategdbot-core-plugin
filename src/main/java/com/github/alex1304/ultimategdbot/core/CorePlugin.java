@@ -1,6 +1,6 @@
 package com.github.alex1304.ultimategdbot.core;
 
-import static com.github.alex1304.ultimategdbot.core.CoreServices.CORE_SERVICE;
+import static com.github.alex1304.ultimategdbot.core.CoreServices.CORE;
 
 import java.util.List;
 
@@ -12,13 +12,13 @@ import com.github.alex1304.ultimategdbot.api.util.VersionUtils;
 import discord4j.common.GitProperties;
 import reactor.core.publisher.Mono;
 
-public class CorePlugin implements Plugin {
+public final class CorePlugin implements Plugin {
 	
 	public static final String PLUGIN_NAME = "Core";
 
 	@Override
 	public ServiceReference<?> rootService() {
-		return CORE_SERVICE;
+		return CORE;
 	}
 	
 	@Override

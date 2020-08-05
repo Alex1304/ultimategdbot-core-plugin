@@ -1,5 +1,5 @@
 import com.github.alex1304.ultimategdbot.api.Plugin;
-import com.github.alex1304.ultimategdbot.api.ServiceDeclarator;
+import com.github.alex1304.ultimategdbot.api.service.ServiceDeclarator;
 import com.github.alex1304.ultimategdbot.core.CorePlugin;
 import com.github.alex1304.ultimategdbot.core.CoreServices;
 

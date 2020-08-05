@@ -15,6 +15,7 @@ import com.github.alex1304.ultimategdbot.api.command.annotated.CommandAction;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDescriptor;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDoc;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandPermission;
+import com.github.alex1304.ultimategdbot.api.service.Root;
 import com.github.alex1304.ultimategdbot.core.database.CoreConfigDao;
 
 import discord4j.core.object.entity.Attachment;
@@ -37,9 +38,12 @@ import reactor.util.retry.Retry;
 		shortDescription = "tr:CoreStrings/changelog_desc"
 )
 @CommandPermission(level = PermissionLevel.BOT_OWNER)
-public class ChangelogCommand extends CoreCommand {
+public final class ChangelogCommand {
 
 	private final HttpClient fileClient = HttpClient.create().headers(h -> h.add("Content-Type", "text/plain"));
+	
+	@Root
+	private CoreService core;
 	
 	@CommandAction
 	@CommandDoc("tr:CoreStrings/changelog_run")
@@ -53,7 +57,7 @@ public class ChangelogCommand extends CoreCommand {
 				.filter(l -> !l.startsWith("#"))
 				.collectList()
 				.map(lines -> parse(ctx, ctx.author(), lines))
-				.flatMap(embedData -> core.getInteractiveMenuService().create(m -> {
+				.flatMap(embedData -> core.bot().interactiveMenu().create(m -> {
 							m.setContent(ctx.translate("CoreStrings", "confirm"));
 							m.setEmbed(embed -> {
 								embed.setTitle(embedData.title().get());
@@ -63,7 +67,7 @@ public class ChangelogCommand extends CoreCommand {
 							});
 						})
 						.addReactionItem("success", interaction -> ctx.reply(ctx.translate("CoreStrings", "wait"))
-								.then(core.getDatabaseService()
+								.then(core.bot().database()
 										.withExtension(CoreConfigDao.class, CoreConfigDao::getAllChangelogChannels)
 										.flatMapMany(Flux::fromIterable)
 										.map(ctx.event().getClient().rest()::getChannelById)

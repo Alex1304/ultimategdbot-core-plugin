@@ -21,11 +21,11 @@ import reactor.core.publisher.Mono;
 		aliases = "runtime",
 		shortDescription = "tr:CoreStrings/runtime_desc"
 )
-public class RuntimeCommand extends CoreCommand {
+public final class RuntimeCommand {
 
 	@CommandAction
 	@CommandDoc("tr:CoreStrings/runtime_run")
-	public Mono<Void> run(Context ctx) {
+	public static Mono<Void> run(Context ctx) {
 		return ctx.channel().typeUntil(
 				Mono.zip(objArray -> Flux.fromArray(objArray).cast(EmbedField.class).collectList(),
 						uptime(ctx),

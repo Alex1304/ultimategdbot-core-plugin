@@ -20,6 +20,7 @@ import com.github.alex1304.ultimategdbot.api.command.Context;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandAction;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDescriptor;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDoc;
+import com.github.alex1304.ultimategdbot.api.service.Root;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -30,7 +31,10 @@ import reactor.util.function.Tuples;
 		aliases = { "help", "manual" },
 		shortDescription = "tr:CoreStrings/help_desc"
 )
-public class HelpCommand extends CoreCommand {
+public final class HelpCommand {
+	
+	@Root
+	private CoreService core;
 	
 	@CommandAction
 	@CommandDoc("tr:CoreStrings/help_run")
@@ -41,12 +45,12 @@ public class HelpCommand extends CoreCommand {
 	private Mono<Void> displayCommandList(Context ctx) {
 		var sb = new StringBuilder(ctx.translate("CoreStrings", "command_list", ctx.prefixUsed()) + "\n\n");
 		return ctx.event().getMessage().getChannel()
-				.flatMap(channel -> Flux.fromIterable(core.getCommandService().getCommandProviders())
+				.flatMap(channel -> Flux.fromIterable(core.bot().command().getCommandProviders())
 						.sort(comparing(CommandProvider::getName))
 						.concatMap(commandProvider -> Flux.fromIterable(commandProvider.getProvidedCommands())
 								.filter(cmd -> cmd.getScope().isInScope(channel))
-								.filterWhen(cmd -> core.getCommandService().getPermissionChecker().isGranted(cmd.getRequiredPermission(), ctx))
-								.filterWhen(cmd -> core.getCommandService().getPermissionChecker().isGranted(cmd.getMinimumPermissionLevel(), ctx))
+								.filterWhen(cmd -> core.bot().command().getPermissionChecker().isGranted(cmd.getRequiredPermission(), ctx))
+								.filterWhen(cmd -> core.bot().command().getPermissionChecker().isGranted(cmd.getMinimumPermissionLevel(), ctx))
 								.collectSortedList(comparing(HelpCommand::joinAliases))
 								.map(cmdList -> Tuples.of(commandProvider.getName(), cmdList)))
 						.doOnNext(consumer((pluginName, cmdList) -> {
@@ -63,7 +67,7 @@ public class HelpCommand extends CoreCommand {
 									});
 							sb.append('\n');
 						})).then())
-				.then(Mono.defer(() -> core.getInteractiveMenuService()
+				.then(Mono.defer(() -> core.bot().interactiveMenu()
 						.createPaginated(sb.toString(), 1990)
 						.open(ctx)));
 	}
@@ -71,7 +75,7 @@ public class HelpCommand extends CoreCommand {
 	private Mono<Void> displayCommandDocumentation(Context ctx, String commandName, String subcommand) {
 		var selectedSubcommand = subcommand == null ? "" : subcommand.toLowerCase();
 		var command = new AtomicReference<Command>();
-		return Mono.justOrEmpty(core.getCommandService().getCommandByAlias(commandName))
+		return Mono.justOrEmpty(core.bot().command().getCommandByAlias(commandName))
 				.switchIfEmpty(Mono.error(new CommandFailedException(ctx.translate("CoreStrings", "error_command_not_found", commandName))))
 				.doOnNext(command::set)
 				.flatMap(cmd -> findAvailableSubcommands(cmd, ctx).collectList().map(subcommands -> Tuples.of(subcommands, cmd)))
@@ -95,10 +99,10 @@ public class HelpCommand extends CoreCommand {
 						ctx,
 						cmd,
 						ctx.prefixUsed(),
-						core.getCommandService().getFlagPrefix(),
+						core.bot().command().getFlagPrefix(),
 						commandName,
 						selectedSubcommand))
-				.flatMap(doc -> core.getInteractiveMenuService()
+				.flatMap(doc -> core.bot().interactiveMenu()
 						.createPaginated(doc, 1200)
 						.open(ctx));
 	}

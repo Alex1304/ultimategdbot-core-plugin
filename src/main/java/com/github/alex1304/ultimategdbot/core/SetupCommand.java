@@ -36,6 +36,7 @@ import com.github.alex1304.ultimategdbot.api.database.guildconfig.IntegerConfigE
 import com.github.alex1304.ultimategdbot.api.database.guildconfig.LongConfigEntry;
 import com.github.alex1304.ultimategdbot.api.database.guildconfig.StringConfigEntry;
 import com.github.alex1304.ultimategdbot.api.database.guildconfig.ValidationException;
+import com.github.alex1304.ultimategdbot.api.service.Root;
 import com.github.alex1304.ultimategdbot.api.util.DiscordFormatter;
 import com.github.alex1304.ultimategdbot.api.util.DiscordParser;
 import com.github.alex1304.ultimategdbot.api.util.Markdown;
@@ -54,12 +55,15 @@ import reactor.util.function.Tuples;
 	scope = Scope.GUILD_ONLY
 )
 @CommandPermission(level = PermissionLevel.GUILD_ADMIN)
-public class SetupCommand extends CoreCommand {
+public final class SetupCommand {
+	
+	@Root
+	private CoreService core;
 
 	@CommandAction
 	@CommandDoc("tr:CoreStrings/setup_run")
 	public Mono<Void> run(Context ctx) {
-		return core.getDatabaseService()
+		return core.bot().database()
 				.configureGuild(ctx, ctx.event().getGuildId().orElseThrow())
 				.collectList()
 				.flatMap(configurators -> {
@@ -84,7 +88,7 @@ public class SetupCommand extends CoreCommand {
 							.map(content -> Tuples.of(configurators, content, formattedValuePerEntry));
 				})
 				.flatMap(TupleUtils.function((configurators, content, formattedValuePerEntry) -> core
-						.getInteractiveMenuService()
+						.bot().interactiveMenu()
 						.createPaginated((tr, page) -> {
 							PageNumberOutOfRangeException.check(page, 0, content.size() - 1);
 							return new MessageSpecTemplate(content.get(page), embed -> embed.addField(
@@ -100,20 +104,20 @@ public class SetupCommand extends CoreCommand {
 						.addReactionItem("🔄", resetInteraction -> {
 							resetInteraction.closeMenu();
 							var configurator = configurators.get(resetInteraction.get("currentPage"));
-							return core.getInteractiveMenuService()
+							return core.bot().interactiveMenu()
 									.create(Markdown.bold(ctx.translate("CoreStrings", "reset_confirm", configurator.getName())))
 									.addReactionItem("✅", interaction -> {
-										return configurator.resetConfig(core.getDatabaseService())
+										return configurator.resetConfig(core.bot().database())
 												.then(ctx.reply("✅ " + ctx.translate("CoreStrings", "reset_success")))
 												.then();
 									})
-									.addReactionItem(core.getInteractiveMenuService()
+									.addReactionItem(core.bot().interactiveMenu()
 											.getPaginationControls()
 											.getCloseEmoji(), interaction -> Mono.fromRunnable(interaction::closeMenu))
 									.deleteMenuOnClose(true)
 									.open(ctx);
 						})
-						.addReactionItem(core.getInteractiveMenuService()
+						.addReactionItem(core.bot().interactiveMenu()
 								.getPaginationControls()
 								.getCloseEmoji(), interaction -> Mono.fromRunnable(interaction::closeMenu))
 						.deleteMenuOnClose(true)
@@ -133,7 +137,7 @@ public class SetupCommand extends CoreCommand {
 		var firstEntry = entryQueue.element();
 		var valueOfFirstEntry = formattedValuePerEntry.get(firstEntry);
 		return firstEntry.accept(new PromptVisitor(ctx, valueOfFirstEntry, 1, totalPages))
-				.map(core.getInteractiveMenuService()::create)
+				.map(core.bot().interactiveMenu()::create)
 				.flatMap(menu -> menu
 						.addReactionItem("⏭️", interaction -> goToNextEntry(ctx, entryQueue, formattedValuePerEntry,
 								configurator, interaction.getMenuMessage(), interaction::closeMenu, totalPages))
@@ -174,7 +178,7 @@ public class SetupCommand extends CoreCommand {
 	}
 	
 	private Mono<Void> endConfiguration(GuildConfigurator<?> configurator, Context ctx, Runnable menuCloser) {
-		return configurator.saveConfig(core.getDatabaseService())
+		return configurator.saveConfig(core.bot().database())
 				.then(ctx.reply(":white_check_mark: " + ctx.translate("CoreStrings", "configuration_done"))
 						.and(Mono.fromRunnable(menuCloser)));
 	}

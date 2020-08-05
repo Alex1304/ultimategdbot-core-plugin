@@ -12,6 +12,7 @@ import com.github.alex1304.ultimategdbot.api.command.Context;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandAction;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDescriptor;
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDoc;
+import com.github.alex1304.ultimategdbot.api.service.Root;
 import com.github.alex1304.ultimategdbot.api.util.PropertyReader;
 import com.github.alex1304.ultimategdbot.api.util.VersionUtils;
 
@@ -23,16 +24,19 @@ import reactor.core.scheduler.Schedulers;
 		aliases = "about",
 		shortDescription = "tr:CoreStrings/about_desc"
 )
-public class AboutCommand extends CoreCommand {
+public final class AboutCommand {
 
 	private static final Mono<Properties> D4J_PROPS = Mono.fromCallable(GitProperties::getProperties).cache();
+	
+	@Root
+	private CoreService core;
 	
 	@CommandAction
 	@CommandDoc("tr:CoreStrings/about_run")
 	public Mono<Void> run(Context ctx) {
 		return Mono.zip(D4J_PROPS.map(PropertyReader::fromProperties).transform(props -> version(ctx, props)),
 						VersionUtils.getGitProperties(API_GIT_RESOURCE).transform(props -> version(ctx, props)),
-						core.getBotOwner(),
+						core.botOwner(),
 						ctx.event().getClient().getSelf(),
 						ctx.event().getClient().getGuilds().count(),
 						ctx.event().getClient().getUsers().count())
@@ -46,14 +50,7 @@ public class AboutCommand extends CoreCommand {
 					versionInfoBuilder.append("** ")
 							.append(d4jVersion)
 							.append("\n");
-//					pluginVersions.forEach((k, v) -> {
-//						versionInfoBuilder.append("**")
-//							.append(k)
-//							.append(" plugin version:** ")
-//							.append(v)
-//							.append("\n");
-//					});
-					for (var pluginMetadata : core.getPluginMetadata()) {
+					for (var pluginMetadata : core.bot().pluginMetadata().all()) {
 						versionInfoBuilder.append("**")
 								.append(pluginMetadata.getName())
 								.append(' ')
@@ -77,7 +74,7 @@ public class AboutCommand extends CoreCommand {
 								.append('\n');
 					}
 					// Remove last \n
-					if (!core.getPluginMetadata().isEmpty()) {
+					if (!core.bot().pluginMetadata().all().isEmpty()) {
 						versionInfoBuilder.deleteCharAt(versionInfoBuilder.length() - 1);
 					}
 					var vars = new HashMap<String, String>();
@@ -86,9 +83,9 @@ public class AboutCommand extends CoreCommand {
 					vars.put("server_count", "" + guildCount);
 					vars.put("user_count", "" + userCount);
 					vars.put("version_info", versionInfoBuilder.toString());
-					var box = new Object() { private String text = core.getAboutText(); };
+					var box = new Object() { private String text = core.aboutText(); };
 					vars.forEach((k, v) -> box.text = box.text.replaceAll("\\{\\{ *" + k + " *\\}\\}", "" + v));
-					return core.getInteractiveMenuService()
+					return core.bot().interactiveMenu()
 							.createPaginated(box.text, 1990)
 							.open(ctx);
 				}))

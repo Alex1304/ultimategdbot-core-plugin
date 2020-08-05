@@ -10,16 +10,15 @@ import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 import com.github.alex1304.ultimategdbot.api.Translator;
-import com.github.alex1304.ultimategdbot.api.command.CommandService;
 import com.github.alex1304.ultimategdbot.api.database.guildconfig.GuildChannelConfigEntry;
 import com.github.alex1304.ultimategdbot.api.database.guildconfig.GuildConfigData;
 import com.github.alex1304.ultimategdbot.api.database.guildconfig.GuildConfigurator;
 import com.github.alex1304.ultimategdbot.api.database.guildconfig.StringConfigEntry;
 import com.github.alex1304.ultimategdbot.api.database.guildconfig.Validator;
 import com.github.alex1304.ultimategdbot.api.localization.LocalizationService;
+import com.github.alex1304.ultimategdbot.api.service.BotService;
 
 import discord4j.common.util.Snowflake;
-import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.channel.Channel;
 
 @Value.Immutable
@@ -31,12 +30,7 @@ public interface CoreConfigData extends GuildConfigData<CoreConfigData> {
 	
 	Optional<String> locale();
 
-	static GuildConfigurator<CoreConfigData> configurator(
-			CoreConfigData configData,
-			Translator tr,
-			GatewayDiscordClient gateway,
-			CommandService commandService,
-			LocalizationService localizationService) {
+	static GuildConfigurator<CoreConfigData> configurator(CoreConfigData configData, Translator tr, BotService bot) {
 		return GuildConfigurator.builder(tr.translate("CoreStrings", "core_guildconfig_title"), configData, CoreConfigDao.class)
 				.setDescription(tr.translate("CoreStrings", "core_guildconfig_desc"))
 				.addEntry(StringConfigEntry.<CoreConfigData>builder("prefix")
@@ -48,24 +42,24 @@ public interface CoreConfigData extends GuildConfigData<CoreConfigData> {
 						.setValidator(Validator.denyingIf(String::isBlank, tr.translate("CoreStrings", "validate_not_blank"))))
 				.addEntry(GuildChannelConfigEntry.<CoreConfigData>builder("channel_changelog")
 						.setDisplayName(tr.translate("CoreStrings", "display_channel_changelog"))
-						.setValueGetter(forOptionalGuildChannel(gateway, CoreConfigData::channelChangelogId))
+						.setValueGetter(forOptionalGuildChannel(bot.gateway(), CoreConfigData::channelChangelogId))
 						.setValueSetter((data, channel) -> ImmutableCoreConfigData.builder()
 								.from(data)
 								.channelChangelogId(Optional.ofNullable(channel).map(Channel::getId))
 								.build()))
 				.addEntry(StringConfigEntry.<CoreConfigData>builder("locale")
 						.setDisplayName("language")
-						.setDescription(tr.translate("CoreStrings", "desc_locale") + '\n' + displayLocaleList(localizationService))
+						.setDescription(tr.translate("CoreStrings", "desc_locale") + '\n' + displayLocaleList(bot.localization()))
 						.setValueGetter(forOptionalValue(CoreConfigData::locale))
 						.setValueSetter((data, value) -> ImmutableCoreConfigData.builder()
 								.from(data)
 								.locale(Optional.ofNullable(value))
 								.build())
-						.setValidator(Validator.allowingIf(value -> isLocaleSupported(value, localizationService),
+						.setValidator(Validator.allowingIf(value -> isLocaleSupported(value, bot.localization()),
 								tr.translate("CoreStrings", "unrecognized_locale"))))
 				.onSave(data -> {
-					commandService.setPrefixForGuild(data.guildId().asLong(), data.prefix().orElse(null));
-					localizationService.setLocaleForGuild(data.guildId().asLong(),
+					bot.command().setPrefixForGuild(data.guildId().asLong(), data.prefix().orElse(null));
+					bot.localization().setLocaleForGuild(data.guildId().asLong(),
 									data.locale().map(Locale::forLanguageTag).orElse(null));
 				})
 				.build();

@@ -19,11 +19,11 @@ import reactor.core.publisher.Mono;
 		aliases = "ping",
 		shortDescription = "tr:CoreStrings/ping_desc"
 )
-public class PingCommand extends CoreCommand {
+public final class PingCommand {
 
 	@CommandAction
 	@CommandDoc("tr:CoreStrings/ping_run")
-	public Mono<Void> run(Context ctx) {
+	public static Mono<Void> run(Context ctx) {
 		return ctx.reply(ctx.translate("CoreStrings", "pong"))
 				.elapsed()
 				.flatMap(function((apiLatency, message) -> message.edit(
