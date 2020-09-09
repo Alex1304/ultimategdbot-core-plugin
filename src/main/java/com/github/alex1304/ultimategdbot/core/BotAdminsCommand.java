@@ -1,6 +1,5 @@
 package com.github.alex1304.ultimategdbot.core;
 
-import static discord4j.core.retriever.EntityRetrievalStrategy.STORE_FALLBACK_REST;
 import static java.util.function.Predicate.isEqual;
 
 import com.github.alex1304.ultimategdbot.api.command.CommandFailedException;
@@ -35,7 +34,6 @@ public final class BotAdminsCommand {
 				.withExtension(BotAdminDao.class, BotAdminDao::getAll)
 				.flatMapMany(Flux::fromIterable)
 				.flatMap(adminId -> ctx.event().getClient()
-						.withRetrievalStrategy(STORE_FALLBACK_REST)
 						.getUserById(Snowflake.of(adminId)))
 				.map(User::getTag)
 				.collectSortedList(String.CASE_INSENSITIVE_ORDER)

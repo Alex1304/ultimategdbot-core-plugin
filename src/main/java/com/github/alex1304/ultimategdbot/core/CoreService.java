@@ -7,7 +7,7 @@ import java.util.Locale;
 import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
 
 import com.github.alex1304.ultimategdbot.api.command.CommandProvider;
-import com.github.alex1304.ultimategdbot.api.command.PermissionChecker;
+import com.github.alex1304.ultimategdbot.api.command.CommandService;
 import com.github.alex1304.ultimategdbot.api.command.PermissionLevel;
 import com.github.alex1304.ultimategdbot.api.database.DatabaseService;
 import com.github.alex1304.ultimategdbot.api.service.BotService;
@@ -45,7 +45,7 @@ public final class CoreService {
 						initPrefixes(bot),
 						initLocales(bot),
 						initMemoryStats()))
-				.addCommandProvider(bot.command(), initCommandProvider(botOwner, bot.database()))
+				.addCommandProvider(bot.command(), initCommandProvider(botOwner, bot.database(), bot.command()))
 				.setup();
 	}
 
@@ -76,9 +76,9 @@ public final class CoreService {
 				.subscribeOn(Schedulers.boundedElastic());
 	}
 	
-	private static CommandProvider initCommandProvider(Mono<User> botOwner, DatabaseService databaseService) {
-		var cmdProvider = new CommandProvider(CorePlugin.PLUGIN_NAME);
-		var permissionChecker = new PermissionChecker();
+	private static CommandProvider initCommandProvider(Mono<User> botOwner, DatabaseService databaseService, CommandService commandService) {
+		var cmdProvider = new CommandProvider(CorePlugin.PLUGIN_NAME, commandService.getPermissionChecker());
+		var permissionChecker = commandService.getPermissionChecker();
 		permissionChecker.register(PermissionLevel.BOT_OWNER, ctx -> botOwner.map(ctx.author()::equals));
 		permissionChecker.register(PermissionLevel.BOT_ADMIN, ctx -> databaseService
 				.withExtension(BotAdminDao.class, dao -> dao.get(ctx.author().getId().asLong()))
@@ -90,8 +90,7 @@ public final class CoreService {
 		permissionChecker.register(PermissionLevel.GUILD_ADMIN, ctx -> ctx.event().getMessage().getChannel()
 				.ofType(GuildChannel.class)
 				.flatMap(c -> c.getEffectivePermissions(ctx.author().getId())
-				.map(ps -> ps.contains(Permission.ADMINISTRATOR))));
-		cmdProvider.setPermissionChecker(permissionChecker);
+						.map(ps -> ps.contains(Permission.ADMINISTRATOR))));
 		return cmdProvider;
 	}
 	

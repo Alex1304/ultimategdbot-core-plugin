@@ -5,7 +5,6 @@ DROP TABLE IF EXISTS core_config;
 CREATE TABLE core_config(
 	guild_id BIGINT PRIMARY KEY,
 	prefix VARCHAR(64),
-	channel_changelog_id BIGINT,
 	locale VARCHAR(64)
 );
 
