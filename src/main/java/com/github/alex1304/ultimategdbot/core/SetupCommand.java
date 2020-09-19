@@ -65,6 +65,7 @@ public final class SetupCommand {
 	public Mono<Void> run(Context ctx) {
 		return core.bot().database()
 				.configureGuild(ctx, ctx.event().getGuildId().orElseThrow())
+				.sort((a, b) -> a.getName().compareTo(b.getName()))
 				.collectList()
 				.flatMap(configurators -> {
 					var formattedConfigs = new ArrayList<Mono<String>>();

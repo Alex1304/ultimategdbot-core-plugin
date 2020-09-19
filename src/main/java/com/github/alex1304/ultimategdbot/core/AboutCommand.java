@@ -38,9 +38,8 @@ public final class AboutCommand {
 						VersionUtils.getGitProperties(API_GIT_RESOURCE).transform(props -> version(ctx, props)),
 						core.botOwner(),
 						ctx.event().getClient().getSelf(),
-						ctx.event().getClient().getGuilds().count(),
-						ctx.event().getClient().getUsers().count())
-				.flatMap(function((d4jVersion, apiVersion, botOwner, self, guildCount, userCount) -> {
+						ctx.event().getClient().getGuilds().count())
+				.flatMap(function((d4jVersion, apiVersion, botOwner, self, guildCount) -> {
 					var versionInfoBuilder = new StringBuilder("**")
 							.append(ctx.translate("CoreStrings", "ugdb_api_version"))
 							.append("** ");
@@ -81,7 +80,6 @@ public final class AboutCommand {
 					vars.put("bot_name", self.getUsername());
 					vars.put("bot_owner", botOwner.getTag());
 					vars.put("server_count", "" + guildCount);
-					vars.put("user_count", "" + userCount);
 					vars.put("version_info", versionInfoBuilder.toString());
 					var box = new Object() { private String text = core.aboutText(); };
 					vars.forEach((k, v) -> box.text = box.text.replaceAll("\\{\\{ *" + k + " *\\}\\}", "" + v));
