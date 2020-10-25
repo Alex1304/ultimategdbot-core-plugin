@@ -15,7 +15,6 @@ module ultimategdbot.core {
 	requires reactor.extra;
 	requires ultimategdbot.api;
 
-	requires static com.google.errorprone.annotations;
 	requires static org.immutables.value;
 
 	provides Plugin with CorePlugin;

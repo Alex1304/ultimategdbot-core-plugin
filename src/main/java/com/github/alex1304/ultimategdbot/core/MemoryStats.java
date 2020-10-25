@@ -14,6 +14,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.ReplayProcessor;
+import reactor.core.publisher.Sinks;
 
 class MemoryStats {
 	private static final ReplayProcessor<MemoryStats> STATS = ReplayProcessor.cacheLastOrDefault(new MemoryStats());

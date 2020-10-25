@@ -14,6 +14,7 @@ import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDescriptor
 import com.github.alex1304.ultimategdbot.api.command.annotated.CommandDoc;
 import com.github.alex1304.ultimategdbot.api.util.DurationUtils;
 
+import discord4j.common.store.action.read.ReadActions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -86,18 +87,18 @@ public final class RuntimeCommand {
 				ctx.translate("CoreStrings", "users"),
 				ctx.translate("CoreStrings", "voice_states")
 		};
-		var stateView = ctx.event().getClient().getGatewayResources().getStateView();
+		var store = ctx.event().getClient().getGatewayResources().getStore();
 		return Mono.zip(
 				objArray -> Arrays.stream(objArray).map(x -> (Long) x).collect(Collectors.toList()),
-				stateView.getChannelStore().count(),
-				stateView.getGuildEmojiStore().count(),
-				stateView.getGuildStore().count(),
-				stateView.getMessageStore().count(),
-				stateView.getMemberStore().count(),
-				stateView.getPresenceStore().count(),
-				stateView.getRoleStore().count(),
-				stateView.getUserStore().count(),
-				stateView.getVoiceStateStore().count())
+				Mono.from(store.execute(ReadActions.countChannels())),
+				Mono.from(store.execute(ReadActions.countEmojis())),
+				Mono.from(store.execute(ReadActions.countGuilds())),
+				Mono.from(store.execute(ReadActions.countMessages())),
+				Mono.from(store.execute(ReadActions.countMembers())),
+				Mono.from(store.execute(ReadActions.countPresences())),
+				Mono.from(store.execute(ReadActions.countRoles())),
+				Mono.from(store.execute(ReadActions.countUsers())),
+				Mono.from(store.execute(ReadActions.countVoiceStates())))
 			.map(counts -> {
 				var sb = new StringBuilder();
 				var i = 0;
