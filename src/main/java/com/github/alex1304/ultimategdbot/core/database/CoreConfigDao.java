@@ -1,18 +1,19 @@
 package com.github.alex1304.ultimategdbot.core.database;
 
-import java.util.List;
-import java.util.Optional;
-
+import com.github.alex1304.ultimategdbot.api.database.guildconfig.GuildConfigDao;
+import discord4j.common.util.Snowflake;
 import org.jdbi.v3.sqlobject.customizer.BindPojo;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
-import com.github.alex1304.ultimategdbot.api.database.guildconfig.GuildConfigDao;
-
-import discord4j.common.util.Snowflake;
+import java.util.List;
+import java.util.Optional;
 
 public interface CoreConfigDao extends GuildConfigDao<CoreConfigData> {
 	String TABLE = "core_config";
+
+	@SqlQuery("SELECT * FROM " + TABLE)
+	List<CoreConfigData> getAll();
 
 	@Override
 	@SqlUpdate("INSERT INTO " + TABLE + "(guild_id) VALUES (?)")
